@@ -1,0 +1,158 @@
+﻿@model AQMS.Web.Models.DashboardViewModel
+@using AQMS.Web.Models
+@{
+    ViewData["Title"] = "Dashboard";
+    var istAdmin = User.IsInRole("Admin");
+}
+
+<h1>Aquarium-Dashboard</h1>
+
+@* TempData überlebt genau einen Redirect - Meldung nach dem Schalten *@
+@if (TempData["Meldung"] is string meldung)
+{
+    <div class="alert alert-info">@meldung</div>
+}
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Wassertemperatur</h5>
+                @if (Model.CurrentTemperature.HasValue)
+                {
+                    <p class="display-4 mb-1">@Model.CurrentTemperature.Value.ToString("0.0") °C</p>
+                    <small class="text-muted">
+                        Pi:
+                        @if (Model.PiOnline)
+                        {
+                            <span class="text-success">online</span>
+                        }
+                        else
+                        {
+                            <span class="text-danger">kein aktueller Messwert</span>
+                        }
+                    </small>
+                }
+                else
+                {
+                    <p class="text-muted">Noch keine Messwerte vorhanden.</p>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Verlauf (letzte 50 Messungen)</h5>
+                <canvas id="tempChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h2>Geräte</h2>
+
+@if (!istAdmin)
+{
+    <p class="text-muted"><em>Nur Benutzer mit der Rolle „Admin" dürfen schalten.</em></p>
+}
+
+<table class="table table-striped align-middle">
+    <thead>
+        <tr>
+            <th>Gerät</th>
+            <th>Zustand</th>
+            <th>Zuletzt geschaltet</th>
+            <th>Aktion</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var device in Model.Devices)
+        {
+            <tr>
+                <td>@device.Name</td>
+                <td>
+                    @if (device.CurrentState == DeviceState.On)
+                    {
+                        <span class="badge bg-success">EIN</span>
+                    }
+                    else if (device.CurrentState == DeviceState.Off)
+                    {
+                        <span class="badge bg-secondary">AUS</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-light text-dark">unbekannt</span>
+                    }
+                </td>
+                <td>
+                    @(device.LastSwitchedAt.HasValue
+                        ? device.LastSwitchedAt.Value.ToLocalTime().ToString("dd.MM. HH:mm")
+                        : "—")
+                </td>
+                <td>
+                    @if (device.HasPendingCommand)
+                    {
+                        <span class="text-warning">
+                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                            Befehl wird ausgeführt …
+                        </span>
+                    }
+                    else if (istAdmin)
+                    {
+                        @* Das Tag-Helper-Form erzeugt automatisch das Antiforgery-Token *@
+                        <form asp-action="Toggle" method="post" class="d-inline">
+                            <input type="hidden" name="deviceId" value="@device.Id" />
+                            <input type="hidden" name="action" value="@(device.CurrentState == DeviceState.On ? "Off" : "On")" />
+                            <button type="submit" class="btn btn-sm @(device.CurrentState == DeviceState.On ? "btn-outline-danger" : "btn-outline-success")">
+                                @(device.CurrentState == DeviceState.On ? "Ausschalten" : "Einschalten")
+                            </button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@section Scripts {
+    @* Auto-Reload nur solange ein Befehl offen ist. Sobald der Worker gemeldet hat,
+       ist HasPendingCommand false und das Skript wird gar nicht erst gerendert -
+       kein Dauer-Polling *@
+    @if (Model.Devices.Any(d => d.HasPendingCommand))
+    {
+        <script>
+            setTimeout(() => location.reload(), 3000);
+        </script>
+    }
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script>
+        // Model-Daten serverseitig als JSON in die Seite schreiben.
+        // Json.Serialize escaped korrekt - kein manuelles String-Basteln (XSS-Risiko).
+        const labels = @Html.Raw(Json.Serialize(Model.ChartLabels));
+        const values = @Html.Raw(Json.Serialize(Model.ChartValues));
+
+        new Chart(document.getElementById('tempChart'), {
+            type: 'line',
+            data: {
+            labels: labels,
+            datasets: [{
+            label: 'Temperatur (°C)',
+            data: values,
+            borderColor: '#0d6efd',
+            tension: 0.2,
+            pointRadius: 2
+            }]
+            },
+            options: {
+            scales: {
+            // Nicht bei 0 beginnen - sonst ist der interessante Bereich
+            // (24-26 °C) eine flache Linie am oberen Rand.
+            y: { beginAtZero: false, title: { display: true, text: '°C' } }
+            },
+            plugins: { legend: { display: false } }
+            }
+        });
+    </script>
+}

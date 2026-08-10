@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="AQMS.Tests/AQMS.Tests.csproj" />
+  <Project Path="AQMS.Web/AQMS.Web.csproj" />
+  <Project Path="AQMS.Worker/AQMS.Worker.csproj" />
+</Solution>

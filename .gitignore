@@ -1,0 +1,44 @@
+# --- .NET Build-Artefakte ---
+**/bin/
+**/obj/
+
+# --- Visual Studio Caches & User-spezifische Dateien ---
+.vs/
+*.user
+*.suo
+*.userprefs
+**/Properties/serviceDependencies*.json
+
+# --- Rider / VS Code ---
+.idea/
+.vscode/
+
+# --- Test Results ---
+[Tt]est[Rr]esult*/
+*.coverage
+*.coveragexml
+
+# --- LocalDB / SQL Server lokale DB-Dateien ---
+*.mdf
+*.ldf
+*.ndf
+
+# --- Secrets / lokale Konfiguration ---
+secrets.json
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Local.json
+appsettings.*.local.json
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Interne Arbeitsdokumente (nicht Teil der Veroeffentlichung) ---
+# Nur die Masterdoku wird veroeffentlicht.
+docs/*
+!docs/AQMS_Masterdoku.md
+
+# --- Diplomarbeit (Abgabe laeuft ueber den offiziellen Weg) ---
+*.docx
+*.doc
