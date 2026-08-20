@@ -14,7 +14,7 @@ public enum CommandResult
     AlreadyProcessed
 }
 
-//Eigenes Enum für die Befehls-ERSTELLUNG - bewusst nicht CommandResult wiederverwendet;
+//Eigenes Enum für die Befehls-erstellung - bewusst nicht CommandResult wiederverwendet;
 //Erstellung und Ergebnis-Verarbeitung haben komplett andere Fehlerfälle (Gerät unbekannt/deaktiviert
 //vs. Befehl unbekannt/schon verarbeitet). Ein gemeinsames Enum hätte in beiden Aufrufern
 //tote Zweige erzeugt, die man nie treffen kann;
@@ -31,7 +31,7 @@ public enum CreateCommandResult
 //mehrstufige Dependency Injection; 
 //controller braucht CommandService - commandservice braucht aqmsdbContext; - DI wird verkettet;
 // Der Controller ruft diese Klasse auf, diese Klasse spricht mit dem DbContext.
-// Der Service kennt bewusst KEINE HTTP-Typen (kein ActionResult) -> bleibt ohne ASP.NET testbar.
+// Der Service kennt bewusst keine HTTP-Typen (kein ActionResult) -> bleibt ohne ASP.NET testbar.
 public class CommandService
 {
     //DbContext wird per Konstruktor-Injektion vom DI-Container bereitgestellt; im Hintergrund registriert in Program.cs via AddDbContext
@@ -135,12 +135,12 @@ public class CommandService
         return CommandResult.Success;
     }
 
-    //Methode zum ANLEGEN eines Befehls (Gegenstück zu GetPendingCommands);
-    //Auslöser ist der Dashboard-Toggle (MVC-Route, Cookie-Auth) - NICHT der Worker;
+    //Methode zum anlegen eines Befehls (Gegenstück zu GetPendingCommands);
+    //Auslöser ist der Dashboard-Toggle (MVC-Route, Cookie-Auth) - nicht der Worker;
     //der Worker holt Befehle nur ab, er erzeugt keine;
     //
-    //userId kommt SERVERSEITIG aus dem eingeloggten Benutzer (User.GetUserId im Controller)
-    //und wird bewusst NICHT aus dem Request-Body gebunden - sonst könnte ein Client eine
+    //userId kommt serverseitig aus dem eingeloggten Benutzer (User.GetUserId im Controller)
+    //und wird bewusst nicht aus dem Request-Body gebunden - sonst könnte ein Client eine
     //fremde UserId mitschicken und Befehle unter falschem Namen protokollieren;
     public async Task<CreateCommandResult> CreateCommandAsync(int deviceId, DeviceState action, string? userId)
     {
@@ -159,7 +159,7 @@ public class CommandService
         //-> das relais würde mehrfach hin und her schalten (relais-flattern).
         //ein offener befehl pro gerät genügt;
         //
-        //vergleich direkt gegen den enum-wert, NICHT c.Status.ToString() == "Pending" -
+        //vergleich direkt gegen den enum-wert, nicht c.Status.ToString() == "Pending" -
         //ToString() ist nicht nach SQL übersetzbar (Lesson Learned §23N), der enum-vergleich
         //dagegen schon, weil HasConversion<string>() im DbContext konfiguriert ist;
         var hasPending = await _db.DeviceCommands

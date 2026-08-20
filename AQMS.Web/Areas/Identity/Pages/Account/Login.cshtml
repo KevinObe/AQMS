@@ -1,0 +1,102 @@
+﻿@page
+@* Diese Seite überschreibt nur die View der Standard-Identity-UI.
+   Das PageModel (Login-Logik, Validierung, SignInManager) kommt weiterhin
+   unverändert aus dem Paket Microsoft.AspNetCore.Identity.UI - deshalb ist
+   hier kein eigener C#-Code nötig. *@
+@model Microsoft.AspNetCore.Identity.UI.V5.Pages.Account.Internal.LoginModel
+
+@{
+    ViewData["Title"] = "Anmelden";
+}
+
+<style>
+    /* Nur für diese Seite - hält site.css frei von Login-spezifischen Regeln */
+    .login-card {
+        max-width: 27rem;
+        margin: 3rem auto;
+        border: 0;
+        border-radius: .75rem;
+        overflow: hidden;
+        box-shadow: 0 .5rem 1.5rem rgba(13, 110, 253, .12);
+    }
+
+    .login-card__header {
+        background: linear-gradient(135deg, #0d6efd 0%, #0aa2c0 100%);
+        color: #fff;
+        padding: 1.75rem 1.5rem 1.5rem;
+        text-align: center;
+    }
+
+    .login-card__header h1 {
+        font-size: 1.5rem;
+        margin: .75rem 0 .25rem;
+    }
+
+    .login-card__header p {
+        margin: 0;
+        opacity: .85;
+        font-size: .9rem;
+    }
+
+    /* Die Validierungs-Zusammenfassung bekommt vom Tag-Helper die Klasse
+       "validation-summary-valid", solange es keine Fehler gibt - dann soll
+       kein leerer roter Kasten stehen. */
+    .login-card .validation-summary-valid {
+        display: none;
+    }
+</style>
+
+<div class="card login-card">
+    <div class="login-card__header">
+        @* Inline-SVG statt Icon-Font - keine zusätzliche Abhängigkeit nötig *@
+        <svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M8 0s6 5.686 6 10a6 6 0 0 1-12 0C2 5.686 8 0 8 0zM6.646 4.646l-.708.708c1.585 1.585 2.209 3.033 2.209 4.646h1c0-1.887-.732-3.583-2.501-5.354z" />
+        </svg>
+        <h1>Aquarium-Monitoring</h1>
+        <p>Bitte melden Sie sich an, um das Dashboard zu öffnen.</p>
+    </div>
+
+    <div class="card-body p-4">
+        <form id="account" method="post">
+            @* Fehler, die nicht einem einzelnen Feld zuzuordnen sind (z. B. falsches Passwort) *@
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2" role="alert"></div>
+
+            <div class="form-floating mb-3">
+                <input asp-for="Input.Email" class="form-control" autocomplete="username"
+                       aria-required="true" placeholder="name@example.com" />
+                <label asp-for="Input.Email">E-Mail</label>
+                <span asp-validation-for="Input.Email" class="text-danger small"></span>
+            </div>
+
+            <div class="form-floating mb-3">
+                <input asp-for="Input.Password" class="form-control" autocomplete="current-password"
+                       aria-required="true" placeholder="Passwort" />
+                <label asp-for="Input.Password">Passwort</label>
+                <span asp-validation-for="Input.Password" class="text-danger small"></span>
+            </div>
+
+            <div class="form-check mb-3">
+                <input class="form-check-input" asp-for="Input.RememberMe" />
+                <label class="form-check-label" asp-for="Input.RememberMe">Angemeldet bleiben</label>
+            </div>
+
+            <button id="login-submit" type="submit" class="w-100 btn btn-primary btn-lg">Anmelden</button>
+
+            <hr class="my-4" />
+
+            @* Registrierung ist bewusst nicht verlinkt - neue Benutzer werden
+               ausschließlich administrativ angelegt (siehe Program.cs) *@
+            <p class="text-center text-muted small mb-0">
+                <a asp-area="Identity" asp-page="/Account/ForgotPassword" id="forgot-password">Passwort vergessen?</a>
+            </p>
+        </form>
+    </div>
+</div>
+
+<p class="text-center text-muted small">
+    AQMS &ndash; Aquarium Monitoring &amp; Control System
+</p>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

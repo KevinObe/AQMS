@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AQMS.Web.Data;
 
-// public um von draussen zugreifen zu können, ohne public = default private
+// public um von draußen zugreifen zu können, ohne public = default private
 //bei der vererbung IdenitityUser miteinbeziehen, liefert einige wichtige properties für authentifizierung etc...
 public class AqmsDbContext(DbContextOptions<AqmsDbContext> options) : IdentityDbContext<IdentityUser>(options)
 {
@@ -19,7 +19,7 @@ public class AqmsDbContext(DbContextOptions<AqmsDbContext> options) : IdentityDb
     public DbSet<StateChange> StateChanges { get; set; } = null!;
 
     // ---------------------------------------------------------------------------
-    // FLUENT-API REFERENZ - kommentare dienen zum lernen hier; 
+    // fluent-API referenz - kommentare dienen zum lernen hier; 
     //
     //OnModelCreating Methode wird gebraucht um vor dem Bau der Tabellen noch settings oder configs zu übergeben.
     //zuerst werden die tabellen mit dbset benannt, mit den klassen die spalten definiert und mit OnModelCreating werden weitere konfigurationen, dann wird das Schema aufgebaut;
@@ -236,7 +236,7 @@ public class AqmsDbContext(DbContextOptions<AqmsDbContext> options) : IdentityDb
             .HasForeignKey(c => c.DeviceId)
             .OnDelete(DeleteBehavior.Restrict);
 
-            // Filtered Index: nur pending Befehle indizieren — fuer das Pi-Polling
+            // Filtered Index: nur pending Befehle indizieren — für das Pi-Polling
             entity.HasIndex(c => c.Status)
             .HasFilter("[Status] = 'Pending'");
 

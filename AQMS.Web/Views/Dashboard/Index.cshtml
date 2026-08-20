@@ -126,7 +126,11 @@
             setTimeout(() => location.reload(), 3000);
         </script>
     }
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    @* Chart.js liegt bewusst lokal unter wwwroot/lib statt am CDN: sonst würde
+       der Browser bei jedem Dashboard-Aufruf die IP-Adresse des Benutzers an einen
+       Dritten senden - das widerspricht der Datenschutzerklärung und macht das
+       Dashboard von der Erreichbarkeit des CDN abhängig *@
+    <script src="~/lib/chartjs/dist/chart.umd.min.js"></script>
     <script>
         // Model-Daten serverseitig als JSON in die Seite schreiben.
         // Json.Serialize escaped korrekt - kein manuelles String-Basteln (XSS-Risiko).

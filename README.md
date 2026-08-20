@@ -43,13 +43,18 @@ serverseitig idempotent, doppelte Meldungen erzeugen keinen zweiten
 | `AQMS.Worker` | .NET Worker Service auf dem Raspberry Pi — Sensorik und Shelly-Steuerung |
 | `AQMS.Tests` | xUnit-Tests für Command-Idempotenz und Sensor-Parsing |
 
+Das Web-Frontend umfasst neben dem Dashboard (Temperaturverlauf als Chart,
+Schalten der Smart Plugs) eine eigene Login-View für die Identity-UI sowie die
+öffentlich erreichbaren Rechtsseiten Impressum und Datenschutzerklärung. Die
+öffentliche Registrierung ist deaktiviert, neue Konten legt der IdentitySeeder an.
+
 ## Technologie-Stack
 
 - .NET 10 (`net10.0`)
 - ASP.NET Core MVC + ASP.NET Core Identity
 - Entity Framework Core 10 mit SQL Server
 - xUnit
-- Bootstrap 5, jQuery Validation
+- Bootstrap 5, jQuery Validation, Chart.js (lokal ausgeliefert, kein CDN)
 - Deployment: Debian VPS (systemd) + Raspberry Pi OS
 
 ## Konfiguration
@@ -116,4 +121,6 @@ dem privaten Arbeitsrepository gilt:
   EF-Core-Migrationen und wurden deshalb unverändert gelassen.
 - Zwischenstände, Duplikate, Projektmanagement-Binärdateien sowie fremde
   Muster- und Herstellerdokumente sind nicht enthalten.
+- Die Kontaktadresse im Impressum (`AQMS.Web/Views/Home/Impressum.cshtml`) ist
+  ebenfalls durch eine Doku-Adresse ersetzt.
 - Die Diplomarbeit selbst ist nicht Teil dieses Repositorys.

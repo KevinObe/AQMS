@@ -7,7 +7,7 @@ namespace AQMS.Tests;
 
 public class CommandServiceTests
 {
-    // Jeder Test bekommt eine EIGENE InMemory-DB (Guid als Name).
+    // Jeder Test bekommt eine eigene InMemory-DB (Guid als Name).
     // Ohne das würden sich die Tests gegenseitig die Daten verändern -
     // xUnit führt Testklassen parallel aus.
     private static AqmsDbContext NeuerContext()
@@ -97,7 +97,7 @@ public class CommandServiceTests
     {
         using var db = NeuerContext();
 
-        // Ein Befehl für den Pi (Sensor) - darf NICHT im Poll auftauchen
+        // Ein Befehl für den Pi (Sensor) - darf nicht im Poll auftauchen
         db.DeviceCommands.Add(new DeviceCommand
         {
             DeviceId = 1,
@@ -106,7 +106,7 @@ public class CommandServiceTests
             CreatedAt = DateTime.UtcNow
         });
 
-        // Ein Befehl für einen Shelly - MUSS auftauchen
+        // Ein Befehl für einen Shelly - muss auftauchen
         db.DeviceCommands.Add(new DeviceCommand
         {
             DeviceId = 2,
@@ -148,7 +148,7 @@ public class CommandServiceTests
         Assert.Equal(CommandStatus.Executed, befehl.Status);
         Assert.NotNull(befehl.ExecutedAt);
 
-        // Der StateChange ist der Audit-Trail: WER hat WANN WAS geschaltet
+        // Der StateChange ist der Audit-Trail: wer hat wann was geschaltet
         var stateChange = await db.StateChanges.SingleAsync();
         Assert.Equal(DeviceState.On, stateChange.State);
         Assert.Equal("user-abc", stateChange.ChangedByUserId);
@@ -171,7 +171,7 @@ public class CommandServiceTests
 
         await service.ProcessCommandResult(dto);
 
-        // Der Worker meldet at-least-once - eine doppelte Meldung MUSS abprallen,
+        // Der Worker meldet at-least-once - eine doppelte Meldung muss abprallen,
         // sonst entstünde ein zweiter StateChange.
         var zweitesErgebnis = await service.ProcessCommandResult(dto);
 

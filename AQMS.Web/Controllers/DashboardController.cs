@@ -53,7 +53,7 @@ public class DashboardController : Controller
         var points = await _db.Measurements
             .Where(m => m.Device.DeviceIdentifier == "raspberry-pi"
                      && m.MeasurementType.Name == "Temperature")
-            .OrderByDescending(m => m.Timestamp)   // neueste zuerst, damit Take(50) die JÜNGSTEN nimmt
+            .OrderByDescending(m => m.Timestamp)   // neueste zuerst, damit Take(50) die jüngsten nimmt
             .Take(50)
             .Select(m => new { m.Timestamp, m.Value })
             .ToListAsync();
@@ -61,7 +61,7 @@ public class DashboardController : Controller
         points.Reverse();   // fürs Chart wieder chronologisch
 
         // Pi-Online: gibt es einen Messwert aus den letzten 5 Minuten?
-        // (Kadenz ist MeasurementIntervalSeconds; 5 min ist ein grosszügiger Puffer,
+        // (Kadenz ist MeasurementIntervalSeconds; 5 min ist ein großzügiger Puffer,
         //  der einen einzelnen verlorenen POST nicht sofort als Ausfall meldet.)
         var lastTs = points.LastOrDefault()?.Timestamp;
 

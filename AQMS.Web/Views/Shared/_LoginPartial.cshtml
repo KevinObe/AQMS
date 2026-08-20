@@ -16,9 +16,9 @@
 }
 else
 {
-    <li class="nav-item">
-        <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Register">Register</a>
-    </li>
+    @* Kein Register-Link: die öffentliche Registrierung ist in Program.cs deaktiviert
+       und leitet auf die Login-Seite um - ein Link darauf wäre eine Sackgasse.
+       Neue Konten legt der IdentitySeeder an (§23K.3). *@
     <li class="nav-item">
         <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Login">Login</a>
     </li>

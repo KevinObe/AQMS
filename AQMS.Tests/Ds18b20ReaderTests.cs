@@ -23,7 +23,7 @@ public class Ds18b20ReaderTests
     [Fact]
     public void ParseTemperature_CrcFehlgeschlagen_LiefertNull()
     {
-        // CRC "NO" = Übertragungsfehler. Lieber KEIN Wert als ein falscher Wert.
+        // CRC "NO" = Übertragungsfehler. Lieber kein Wert als ein falscher Wert.
         var rohdaten = "8f 01 55 05 7f a5 a5 66 1a : crc=1a NO\n"
                      + "8f 01 55 05 7f a5 a5 66 1a t=24937\n";
 

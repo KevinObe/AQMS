@@ -11,7 +11,15 @@ namespace AQMS.Web.Controllers
             return View();
         }
 
-        public IActionResult Privacy()
+        //Impressum und Datenschutzerklärung müssen ohne Anmeldung erreichbar sein.
+        //Der HomeController trägt bewusst kein [Authorize] - anders als der
+        //DashboardController - damit beide Seiten öffentlich abrufbar bleiben.
+        public IActionResult Impressum()
+        {
+            return View();
+        }
+
+        public IActionResult Datenschutz()
         {
             return View();
         }

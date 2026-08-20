@@ -10,7 +10,7 @@ namespace AQMS.Worker
     // AddSingleton Ds18b20Reader sensorReader -> einmaliges Injizieren der Reader Klasse;
     public class Worker(ILogger<Worker> logger, IHttpClientFactory httpClientFactory, IConfiguration configuration, Ds18b20Reader sensorReader) : BackgroundService
     {
-        // ExecuteAsync läuft EINMAL beim Start; die while-Schleife hält den Dienst am Leben.
+        // ExecuteAsync läuft einmal beim Start; die while-Schleife hält den Dienst am Leben.
         // stoppingToken wird beim Herunterfahren signalisiert -> sauberer Ausstieg aus dem Loop.
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
@@ -58,7 +58,7 @@ namespace AQMS.Worker
             while (!stoppingToken.IsCancellationRequested)
             {
                 // Named Client "aqms-api": in Program.cs vorkonfiguriert mit BaseAddress = AQMS-API
-                // und X-API-Key-Header. NUR für die API gedacht - NICHT für Shellys (s. unten).
+                // und X-API-Key-Header. nur für die API gedacht - nicht für Shellys (s. unten).
                 var client = httpClientFactory.CreateClient("aqms-api");
 
                 // Timeout von 100 s (Default) auf 10 s: sonst blockiert ein hängender VPS den Poll
@@ -68,8 +68,8 @@ namespace AQMS.Worker
                 // Relative URL -> wird gegen die BaseAddress des Clients aufgelöst.
                 string url = $"api/commands/pending";
 
-                // ÄUSSERER Schutz: umschließt Poll UND Parse UND Dispatch.
-                // Hält die Schleife bei JEDEM unerwarteten Fehler am Leben (s. catch unten).
+                // äußerer Schutz: umschließt Poll und Parse und Dispatch.
+                // Hält die Schleife bei jedem unerwarteten Fehler am Leben (s. catch unten).
                 try
                 {
                     // GET an die API (konzeptuell wie fetch() in JS).
@@ -90,7 +90,7 @@ namespace AQMS.Worker
                         // Leere Liste ([], Normalfall ohne offene Befehle) -> nichts zu tun.
                         if (commands is not null && commands.Count > 0)
                         {
-                            // Shelly-Client EINMAL pro Batch: separater Default-Client, bewusst NICHT "aqms-api"
+                            // Shelly-Client einmal pro Batch: separater Default-Client, bewusst nicht "aqms-api"
                             // (dessen BaseAddress + X-API-Key gehören zur API; gegen einen Shelly würde die
                             // absolute URL kollidieren und der API-Key leaken).
                             // Eigener kurzer Timeout: der Default (100 s) würde bei einem hängenden Shelly
@@ -116,7 +116,7 @@ namespace AQMS.Worker
                                 }
 
                                 // Action ("On"/"Off", aus dem DeviceState-Enum) -> Shelly-Verb mappen.
-                                // Ergebnis in eine NEUE Variable - command.Action nicht überschreiben.
+                                // Ergebnis in eine neue Variable - command.Action nicht überschreiben.
                                 string shellyTurn;
                                 switch (command.Action)
                                 {
@@ -137,12 +137,12 @@ namespace AQMS.Worker
                                 // Klassische Shelly-HTTP-API (§7.4) - kompatibel über alle 5 Geräte.
                                 string shellyUrl = $"http://{command.IPAddress}/relay/0?turn={shellyTurn}";
 
-                                // Ergebnis-Variablen VOR dem try deklarieren: sie werden in JEDEM Zweig
+                                // Ergebnis-Variablen vor dem try deklarieren: sie werden in jedem Zweig
                                 // (Erfolg / nicht erreichbar / Timeout) gesetzt und danach gemeldet.
                                 bool success;
                                 string? report;
 
-                                // INNERER Schutz pro Befehl: ein einzelner Shelly-Fehler darf die
+                                // innerer Schutz pro Befehl: ein einzelner Shelly-Fehler darf die
                                 // übrigen Befehle dieser Batch nicht ausfallen lassen -> fangen + weiter.
                                 try
                                 {
@@ -169,7 +169,7 @@ namespace AQMS.Worker
                                 }
                                 catch (TaskCanceledException) when (!stoppingToken.IsCancellationRequested)
                                 {
-                                    // Cancellation, die NICHT vom Shutdown-Token kommt -> es war der 3-s-Timeout
+                                    // Cancellation, die nicht vom Shutdown-Token kommt -> es war der 3-s-Timeout
                                     // des Shelly-Clients (Gerät erreichbar, aber hängt). Kommt sie vom Shutdown,
                                     // ist der Filter false -> Exception läuft durch -> Host stoppt sauber.
                                     success = false;
@@ -178,23 +178,23 @@ namespace AQMS.Worker
                                         command.CommandId, command.DeviceIdentifier);
                                 }
 
-                                // Ergebnis in JEDEM Ausgang an die API melden (Erfolg UND Fehler):
+                                // Ergebnis in jedem Ausgang an die API melden (Erfolg und Fehler):
                                 // setzt den Befehl im Backend auf Executed/Failed -> raus aus Pending, feuert nicht mehr.
                                 await ReportResultAsync(command.CommandId, success, report);
                             }
                         }
                     }
                 }
-                // SPEZIFISCHER Catch ZUERST: Poll-Timeout (VPS antwortet >10 s nicht) kommt als
+                // spezifischer Catch zuerst: Poll-Timeout (VPS antwortet >10 s nicht) kommt als
                 // TaskCanceledException. Der when-Filter grenzt den echten Shutdown aus (dann läuft
                 // die Exception durch -> sauberer Host-Stopp).
                 catch (TaskCanceledException) when (!stoppingToken.IsCancellationRequested)
                 {
                     logger.LogWarning("Poll-Timeout gegen die API - nächster Poll folgt.");
                 }
-                // BREITER Catch danach: Poll-/Parse-/unerwartete Fehler -> Loop überlebt jeden Durchlauf.
+                // breiter Catch danach: Poll-/Parse-/unerwartete Fehler -> Loop überlebt jeden Durchlauf.
                 // Wichtig: TaskCanceledException erbt von OperationCanceledException, wird hier also
-                // vom Filter (is not OperationCanceledException) NICHT gefangen - deshalb der spezifische oben.
+                // vom Filter (is not OperationCanceledException) nicht gefangen - deshalb der spezifische oben.
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     logger.LogError(ex, "Fehler im Poll-Durchlauf ({url}) - nächster Poll folgt.", url);
@@ -231,7 +231,7 @@ namespace AQMS.Worker
                     ResultMessage = report,
                 };
 
-                // Über den aqms-api-Client (BaseAddress API + X-API-Key), NICHT den Shelly-Client.
+                // Über den aqms-api-Client (BaseAddress API + X-API-Key), nicht den Shelly-Client.
                 // Eigener 10-s-Timeout - selbe Absicherung wie beim Poll-Client.
                 var reportClient = httpClientFactory.CreateClient("aqms-api");
                 reportClient.Timeout = TimeSpan.FromSeconds(10);
@@ -254,7 +254,7 @@ namespace AQMS.Worker
                 }
                 catch (HttpRequestException ex)
                 {
-                    // VPS weg -> Meldung verloren. KEIN throw: Befehl bleibt Pending, wird beim
+                    // VPS weg -> Meldung verloren. kein throw: Befehl bleibt Pending, wird beim
                     // nächsten Poll erneut ausgeführt+gemeldet (at-least-once).
                     logger.LogError(ex, "Befehl {commandId}: Result-Meldung fehlgeschlagen - Retry beim nächsten Poll.", commandId);
                 }
@@ -266,17 +266,17 @@ namespace AQMS.Worker
             }
 
             // Liest die Temperatur und meldet sie an POST /api/measurements.
-            // Anders als ReportResultAsync: bei Fehler KEIN Retry - ein verlorener Messwert ist bewusst als ok hingenommen
+            // Anders als ReportResultAsync: bei Fehler kein Retry - ein verlorener Messwert ist bewusst als ok hingenommen
             // die nächste Kadenz liest einen frischen. Ein alter Wert nachgeliefert wäre schädlich (veraltet).
             async Task ReportMeasurementAsync()
             {
-                // Temperatur lesen. null = kein Sensor / CRC NO / Parse-Fehler -> NICHTS posten.
+                // Temperatur lesen. null = kein Sensor / CRC NO / Parse-Fehler -> nichts posten.
                 double? temperature = await sensorReader.ReadTemperatureAsync(stoppingToken);
                 if (temperature is null)
                 {
-                    // Fehl-Read (CRC NO / kein Sensor). Der EINZELne Read wurde in ReadTemperaturAsync
+                    // Fehl-Read (CRC NO / kein Sensor). Der einzelne Read wurde in ReadTemperaturAsync
                     // schon als Warning geloggt. Hier zählen wir die Serie und eskalieren auf Error,
-                    // damit ein DAUERausfall auffällt, statt im Grundrauschen der Warnings unterzugehen.
+                    // damit ein dauerausfall auffällt, statt im Grundrauschen der Warnings unterzugehen.
                     continuousSensorErrors++;
                     if (continuousSensorErrors >= maxSensorErrors)
                     {
@@ -318,7 +318,7 @@ namespace AQMS.Worker
                 }
                 catch (HttpRequestException ex)
                 {
-                    // VPS weg -> Messwert verloren. KEIN throw, KEIN Retry
+                    // VPS weg -> Messwert verloren. kein throw, kein Retry
                     logger.LogError(ex, "Messung fehlgeschlagen - übersprungen.");
                 }
                 catch (TaskCanceledException) when (!stoppingToken.IsCancellationRequested)

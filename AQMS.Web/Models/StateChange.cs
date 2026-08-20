@@ -11,7 +11,7 @@ public class StateChange
     public Device Device { get; set; } = null!;
 
     public int DeviceId { get; set; }
-    // Wer hat geschaltet — null bei automatischen Schaltvorgaengen
+    // Wer hat geschaltet — null bei automatischen Schaltvorgängen
     public string? ChangedByUserId { get; set; }
 
 }

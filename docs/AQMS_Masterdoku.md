@@ -46,7 +46,7 @@ Kevin Oberluggauer · FAAI WIFI Tirol · 2025/2026
 > wurden in diese Master-Doku konsolidiert. Die Originaldateien bleiben als
 > Versionsstände erhalten, sind aber als VERALTET markiert.
 
-**Stand:** 2026-06-07 · KW 23 · Phase 2 begonnen: Worker-Gerüst (Config + named HttpClient `aqms-api`) gebaut und verifiziert
+**Stand:** 2026-08-19 · KW 34 · Web-Frontend fertiggestellt: eigene Login-View, Impressum und Datenschutzerklärung, Chart.js lokal (§23T)
 
 ---
 
@@ -121,6 +121,7 @@ Kevin Oberluggauer · FAAI WIFI Tirol · 2025/2026
 - 23Q. [Unit-Tests mit xUnit](#23q-unit-tests-mit-xunit)
 - 23R. [Messintervall und 24-h-Dauerlauf](#23r-messintervall-und-24-h-dauerlauf)
 - 23S. [Phase 5: Abschluss der Integrations- und Sicherheitstests](#23s-phase-5-abschluss-der-integrations-und-sicherheitstests)
+- 23T. [Web-Frontend: Login-View, Rechtsseiten und lokale Ausliefervorgaben](#23t-web-frontend-login-view-rechtsseiten-und-lokale-ausliefervorgaben)
 
 *Historisch (alter VPS, Debian 12):*
 23. [VPS-Vorbereitung und Runtime-Installation](#23-vps-vorbereitung-und-runtime-installation)
@@ -6092,6 +6093,213 @@ Regel 2 aus §23S.1 da.
 
 ---
 
+## 23T. Web-Frontend: Login-View, Rechtsseiten und lokale Ausliefervorgaben
+
+**Stand: 2026-08-19.** Diese Sektion schließt drei Lücken im Web-Frontend, die für
+den öffentlichen Betrieb unter `aqms.aqms.example.com` Voraussetzung sind: die
+gestaltete Anmeldeseite (Issue #38), die in Österreich vorgeschriebenen Seiten
+Impressum und Datenschutzerklärung, sowie die Beseitigung einer externen
+Abhängigkeit, die der Datenschutzerklärung widersprochen hätte.
+
+Commits: `386cde3` (Login-View), `c2e915f` (Rechtsseiten), `dd726ca` (Chart.js lokal).
+
+### 23T.1 Anlass
+
+Bis zu diesem Stand lieferte die Anwendung die unveränderte Standard-Oberfläche des
+Pakets `Microsoft.AspNetCore.Identity.UI` aus — englischsprachig, mit Verweisen auf
+Registrierung und externe Anmeldedienste, die es in AQMS nicht gibt (§23K.2).
+Zugleich war die Anwendung seit §23J öffentlich und verschlüsselt erreichbar, ohne
+die Angaben nach § 25 MedienG und Art. 13 DSGVO zu führen.
+
+Der zweite Punkt ist keine Funktionserweiterung, sondern eine Betriebsvoraussetzung:
+eine öffentlich erreichbare Website ohne Offenlegung und ohne Datenschutzerklärung
+ist rechtswidrig, unabhängig davon, wie gut die Technik dahinter arbeitet.
+
+### 23T.2 Eigene Login-View ohne eigenes PageModel
+
+Die Identity-UI liegt als **Razor Class Library** im NuGet-Paket. Eine gleichnamige
+Seite im eigenen Projekt hat Vorrang vor der Seite aus der Bibliothek — das ist der
+vorgesehene Weg, einzelne Seiten zu überschreiben, ohne das gesamte Paket zu
+scaffolden.
+
+Datei: [Login.cshtml](../AQMS.Web/Areas/Identity/Pages/Account/Login.cshtml)
+
+```razor
+@page
+@model Microsoft.AspNetCore.Identity.UI.V5.Pages.Account.Internal.LoginModel
+```
+
+**Zentrale Entscheidung: nur die View wird ersetzt, nicht das PageModel.** In Razor
+Pages bestimmt die `@model`-Direktive, welche `PageModel`-Klasse die Seite verwendet;
+die Datei `.cshtml.cs` ist nur die übliche Konvention, keine Pflicht. Indem die View
+das `LoginModel` aus dem Paket referenziert, bleiben Anmeldelogik, Validierung,
+`SignInManager`-Aufruf und Lockout-Behandlung **unverändert Bibliothekscode**.
+
+| Option | Vorteil | Nachteil |
+|---|---|---|
+| Vollständiges Scaffolding der Identity-UI | volle Kontrolle über die Logik | rund 20 Dateien fremden Codes im Projekt, die bei jedem Paket-Update händisch nachgezogen werden müssen |
+| **Nur die View überschreiben** (gewählt) | eine Datei, kein eigener C#-Code, Sicherheitslogik bleibt beim Hersteller | Bindung an die interne Modellklasse `...UI.V5....Internal.LoginModel` |
+
+*Begründung:* Anmeldelogik ist sicherheitskritischer Code. Ihn zu kopieren, um das
+Aussehen zu ändern, verlagert die Wartungslast ohne fachlichen Gewinn — bei einem
+Sicherheits-Patch des Pakets würde die kopierte Fassung stillschweigend veralten. Die
+Bindung an die `Internal`-Klasse ist der bewusst in Kauf genommene Preis; sie bricht
+sichtbar zur Compile-Zeit, nicht lautlos zur Laufzeit.
+
+Das Layout wird über [_ViewStart.cshtml](../AQMS.Web/Areas/Identity/Pages/_ViewStart.cshtml)
+auf `/Views/Shared/_Layout.cshtml` gesetzt, damit die Anmeldeseite in derselben
+Navigation und demselben Footer steht wie das Dashboard. Die Registrierung bleibt
+unverlinkt (§23K.2); der Verweis auf „Passwort vergessen" bleibt bestehen.
+
+### 23T.3 Impressum und Datenschutzerklärung
+
+Zwei neue Seiten unter [Views/Home](../AQMS.Web/Views/Home/), erreichbar über
+`/Home/Impressum` und `/Home/Datenschutz`, verlinkt im Footer des Layouts und damit
+von jeder Seite aus in einem Klick erreichbar — auch von der Anmeldeseite und ohne
+Konto.
+
+**Routing-Entscheidung.** Der `HomeController` trägt bewusst **kein** `[Authorize]`,
+im Gegensatz zum `DashboardController` (§23P.4). Pflichtangaben hinter einer Anmeldung
+wären wertlos: sie müssen gerade denjenigen erreichen, der die Seite noch nicht kennt.
+
+| Angabe | Rechtsgrundlage | Umsetzung |
+|---|---|---|
+| Medieninhaber, Wohnort | § 25 Abs 5 MedienG | Impressum, kleine Offenlegung |
+| Grundlegende Richtung (Blattlinie) | § 25 Abs 4 MedienG | Impressum |
+| Verantwortlicher | Art. 13 Abs 1 lit a DSGVO | Datenschutz Punkt 1, Verweis aufs Impressum |
+| Zwecke und Rechtsgrundlagen | Art. 13 Abs 1 lit c DSGVO | Datenschutz Punkte 2–4 |
+| Empfänger, Auftragsverarbeiter | Art. 13 Abs 1 lit e, Art. 28 DSGVO | Datenschutz Punkt 6 (netcup, AVV) |
+| Betroffenenrechte | Art. 15–21 DSGVO | Datenschutz Punkt 8 |
+| Beschwerderecht | Art. 77 DSGVO | Datenschutz Punkt 9 (Datenschutzbehörde) |
+| Cookies | § 165 Abs 3 TKG 2021 | Datenschutz Punkt 5 |
+
+**Drei inhaltliche Entscheidungen mit Begründung:**
+
+1. **Kleine Offenlegung statt vollem Unternehmensimpressum.** Der Betrieb erfolgt als
+   Privatperson ohne wirtschaftliche Tätigkeit; § 5 ECG und § 63 GewO gelten nur für
+   Unternehmen und sind hier nicht einschlägig. Nach § 25 Abs 5 MedienG genügen Name
+   und Wohnort — Straße und Telefonnummer sind daher bewusst **nicht** angeführt.
+   Datensparsamkeit gilt auch für die eigenen Daten.
+2. **Kein Cookie-Banner.** Gesetzt werden ausschließlich das Authentifizierungs-Cookie
+   von Identity und das Antiforgery-Cookie. Beide sind für den Betrieb unbedingt
+   erforderlich und damit nach § 165 Abs 3 TKG 2021 einwilligungsfrei. Ein Banner wäre
+   nicht nur überflüssig, sondern irreführend — er suggeriert eine Wahl, die es nicht
+   gibt. Diese Aussage hält allerdings nur, solange keine Analyse-, Schrift- oder
+   CDN-Einbindung hinzukommt (siehe §23T.4).
+3. **Kein Link auf die EU-Plattform zur Online-Streitbeilegung.** Sie wurde mit
+   20.07.2025 eingestellt. Der Link steht noch in vielen Impressum-Vorlagen und wäre
+   heute ein Verweis auf eine nicht mehr existierende Stelle.
+
+**Abbildung auf den tatsächlichen Code.** Die Erklärung beschreibt bewusst nur, was die
+Anwendung wirklich verarbeitet:
+
+| Verarbeitung | Wo im System |
+|---|---|
+| Zugriffslogs mit IP-Adresse | **Nginx** auf dem VPS (§23I), nicht die Anwendung — `Microsoft.AspNetCore` steht auf `Warning`, es existiert kein File-Logger |
+| Benutzerkonto, Passwort-Hash, Sperr-Zähler | `AspNetUsers` über ASP.NET Core Identity (§23K) |
+| Wer hat geschaltet | `DeviceCommand.RequestedByUserId` und `StateChange.ChangedByUserId` (§23P.3) |
+| Messwerte | ohne Personenbezug (§17) |
+
+Die englischsprachige Platzhalter-Seite `Views/Home/Privacy.cshtml` aus dem
+Projekttemplate entfällt ersatzlos, ebenso der Navigationseintrag „Home"; das Layout
+steht jetzt auf `lang="de"`. Aus `_LoginPartial.cshtml` ist zudem der
+Register-Link entfernt: er führte auf die deaktivierte Registrierung und damit über
+den Redirect aus §23K.2 wieder zurück zur Anmeldeseite — eine für den Benutzer
+sichtbare Sackgasse.
+
+### 23T.4 Praxisproblem: Chart.js kam vom Content Delivery Network
+
+**Symptom.** Die neu formulierte Datenschutzerklärung sagt zu, dass alle Bibliotheken
+vom eigenen Server ausgeliefert werden. Eine Kontrolle aller Views auf externe URLs
+förderte einen Widerspruch zutage: das Dashboard lud Chart.js über
+`https://cdn.jsdelivr.net/npm/chart.js@4` (§23P.5).
+
+**Ursache.** Die Einbindung stammt aus der Aufbauphase des Dashboards, in der die
+schnelle CDN-Zeile der bequemere Weg war. Bootstrap und jQuery liegen von Beginn an
+lokal unter `wwwroot/lib`, weil das Projekttemplate sie so ablegt — Chart.js kam später
+hinzu und folgte diesem Muster nicht.
+
+**Warum das mehr als ein Schönheitsfehler ist.** Bei jedem Dashboard-Aufruf sendet der
+Browser des angemeldeten Benutzers dessen IP-Adresse an einen Dritten. Das ist eine
+offenlegungspflichtige Verarbeitung und stellt zugleich die Zusage in Frage, dass keine
+Übermittlung außerhalb der EU stattfindet. Der Widerspruch ist von außen mit einem
+einzigen Blick in den Netzwerk-Tab des Browsers nachweisbar.
+
+**Lösung.** Chart.js 4.5.1 liegt nun unter `wwwroot/lib/chartjs`, konsistent zu
+Bootstrap und jQuery, samt Source-Map und MIT-Lizenz. Die abgelegte Datei ist
+**byte-identisch** mit der zuvor vom CDN ausgelieferten Fassung (MD5-Abgleich); es
+ändert sich allein der Auslieferungsweg, nicht die Bibliothek.
+
+```razor
+<script src="~/lib/chartjs/dist/chart.umd.min.js"></script>
+```
+
+Der `MapStaticAssets`-Mechanismus löst den Pfad auf die fingerprint-versehene URL auf
+(`chart.umd.min.gef3zaap5m.js`), wie bei den übrigen lokalen Bibliotheken auch.
+
+**Nebeneffekt.** Das Dashboard hängt nicht mehr an der Erreichbarkeit des CDN und
+funktioniert ohne Internetzugang der Client-Seite — für eine Vorführung ohne
+verlässliches WLAN ein praktischer Vorteil.
+
+**Lessons Learned.** Ein Rechtstext ist eine **prüfbare Zusage über den Code**. Beim
+Formulieren der Datenschutzerklärung fiel ein technischer Mangel auf, der beim Schreiben
+des Dashboards niemandem aufgefallen war. Die Dokumentation hat hier nicht den Code
+beschrieben, sondern ihn korrigiert.
+
+### 23T.5 Zeichenkodierung: UTF-8 mit Byte Order Mark
+
+Die zunächst angelegte Login-View war ohne BOM gespeichert, während alle übrigen Views
+im Projekt UTF-8 **mit** BOM verwenden. In der Datei standen daher Ersatzschreibungen
+(`oeffnen`, `haelt`, `zusaetzlich`) statt Umlauten.
+
+*Warum das relevant ist:* Razor liest `.cshtml` standardmäßig als UTF-8, eine BOM-lose
+Datei funktioniert also zunächst. Sobald sie aber ein Werkzeug anfasst, das ohne BOM auf
+die ANSI-Codepage des Systems zurückfällt, werden aus Umlauten Fragezeichen oder
+`Ã¶`-Folgen — und zwar still, ohne Compilerfehler. Alle betroffenen Dateien wurden auf
+UTF-8 mit BOM vereinheitlicht und die Ersatzschreibungen durch echte Umlaute ersetzt.
+
+### 23T.6 Verifikation
+
+Geprüft am lokal gestarteten Kestrel vor dem Deployment:
+
+| Prüfung | Ergebnis |
+|---|---|
+| `/` ohne Anmeldung | 302 auf `/Identity/Account/Login?ReturnUrl=%2F` |
+| Anmeldeseite | 200, eigene View (`login-card`, deutsche Beschriftung) |
+| `/Home/Impressum`, `/Home/Datenschutz` | je 200, **ohne** Anmeldung erreichbar |
+| Umlaute in den ausgelieferten Seiten | keine Ersatzzeichen |
+| `/lib/chartjs/dist/chart.umd.min.js` | 200, 208.522 Bytes, auch unter der Fingerprint-URL |
+| Suche nach externen URLs in allen Views | nur Textlinks auf `ris.bka.gv.at` und `dsb.gv.at` |
+| Build und Unit-Tests | 0 Warnungen, 16/16 grün |
+
+### 23T.7 Offene Punkte
+
+1. **Aufbewahrungsfrist der Nginx-Logs bestätigen.** Die Datenschutzerklärung nennt
+   14 Tage, abgeleitet aus der Debian-Voreinstellung von logrotate. Zu prüfen gegen
+   `/etc/logrotate.d/nginx` auf dem VPS; weicht der Wert ab, ist der Text anzupassen.
+2. **Auftragsverarbeitungsvertrag mit netcup.** Der Vertrag ist im Customer Control
+   Panel abzuschließen und das PDF als Nachweis nach Art. 28 Abs 9 DSGVO abzulegen.
+3. **Keine Löschfrist für `DeviceCommands` und `StateChanges`.** Es existiert kein
+   Aufräum-Job; die Erklärung führt daher ehrlich „für die Dauer des Betriebs der
+   Anlage" statt einer Frist, die das System nicht einhält. Der Index auf `Timestamp`
+   (§21) wäre die Grundlage für einen späteren Löschlauf.
+
+### 23T.8 Lessons Learned
+
+1. **Rechtstexte sind Integrationstests für die eigene Architektur.** Wer aufschreiben
+   muss, welche Daten wohin fließen, findet Datenflüsse, die im Code niemandem
+   auffallen — hier den CDN-Aufruf.
+2. **Eine Zusicherung ist nur so viel wert wie ihre schwächste Abhängigkeit.** Ein
+   einziges `<script src="https://...">` machte zwei Absätze der Datenschutzerklärung zu
+   einer unwahren Behauptung.
+3. **Fremden Sicherheitscode überschreibt man so wenig wie möglich.** Die
+   View-only-Überschreibung der Anmeldeseite hält die Angriffsfläche beim Hersteller und
+   die eigene Wartungslast bei einer einzigen Datei.
+4. **Zeichenkodierung bricht lautlos.** Eine fehlende BOM erzeugt keinen Fehler, sondern
+   falsche Zeichen — und zwar erst auf dem Rechner, der die Datei als Nächstes anfasst.
+
+---
+
 ## 23. VPS-Vorbereitung und Runtime-Installation
 
 > **HISTORISCH — alter VPS (Debian 12).** Diese Sektion beschreibt die
@@ -6899,6 +7107,33 @@ beschnitten. Verworfen wurden:
 führen, nicht als Lücke. Eine dokumentierte Scope-Entscheidung ist ein Qualitätsmerkmal; ein
 unerwähntes Loch ist ein Mangel.
 
+### 30.17 Verworfene Alternativen: Web-Frontend und Rechtsseiten (2026-08-19)
+
+- **Vollständiges Scaffolding der Identity-UI**, um die Anmeldeseite zu gestalten.
+  *Grund:* rund 20 Dateien fremden, sicherheitskritischen Codes wandern ins Projekt und
+  müssen ab dann selbst gepflegt werden. Ein Sicherheits-Patch des Pakets erreicht die
+  kopierte Fassung nicht. Gewählt wurde die View-only-Überschreibung (§23T.2), die genau
+  das ändert, was geändert werden soll — das Aussehen.
+- **Cookie-Banner „zur Sicherheit".** *Grund:* die Anwendung setzt ausschließlich
+  technisch notwendige Cookies, die nach § 165 Abs 3 TKG 2021 einwilligungsfrei sind. Ein
+  Banner wäre nicht nur überflüssig, sondern sachlich falsch: er stellt eine Wahl in
+  Aussicht, die nicht besteht.
+- **Vollständiges Unternehmensimpressum** mit Firmenbuch-, UID- und Gewerbeangaben.
+  *Grund:* der Betrieb erfolgt als Privatperson ohne wirtschaftliche Tätigkeit, § 5 ECG
+  und § 63 GewO sind nicht einschlägig. Leere oder erfundene Felder wären ein Mangel,
+  nicht Gründlichkeit. Auch Straße und Telefonnummer entfallen, weil § 25 Abs 5 MedienG
+  Name und Wohnort genügen lässt.
+- **Beibehaltung der CDN-Einbindung von Chart.js mit Offenlegung in der
+  Datenschutzerklärung.** *Grund:* wäre zulässig gewesen, hätte aber eine dauerhafte
+  Datenübermittlung an einen Dritten zementiert, nur um eine Datei nicht selbst
+  auszuliefern. Die lokale Ablage kostet 208 kB im Repository und beseitigt die
+  Übermittlung, die Abhängigkeit und den Widerspruch in einem Schritt (§23T.4).
+- **Löschjob für `DeviceCommands` und `StateChanges`,** um in der Datenschutzerklärung
+  eine konkrete Frist nennen zu können. *Grund:* kurz vor der Abgabe kein neuer
+  Hintergrunddienst mit eigener Fehlerbehandlung. Stattdessen nennt die Erklärung
+  ehrlich „für die Dauer des Betriebs der Anlage" — eine zugesagte Frist, die das System
+  nicht einhält, wäre der schwerere Mangel (§23T.7).
+
 ---
 
 ## 31. Glossar
@@ -6975,7 +7210,7 @@ unerwähntes Loch ist ein Mangel.
 
 ## 32. Aktueller technischer Stand
 
-**Stand: 2026-08-06 · KW 32**
+**Stand: 2026-08-19 · KW 34**
 
 ### 32.1 Was funktioniert
 
@@ -7026,6 +7261,10 @@ unerwähntes Loch ist ein Mangel.
 | **SSL Labs: Gesamtnote A, TLS 1.3** | ✓ | **bestanden (2026-08-06), §23S.6** |
 | **Schaltdurchlauf über alle 5 Geräte, 9 Befehle, 0 Fehler** | ✓ | **bestanden (2026-08-06), §23S.7**, Schaltlatenz 5–9 s (Mittel 6,9 s) |
 | **Phase 5 (Testing) vollständig abgeschlossen** | ✓ | alle 9 Feinziele aus GZ 5.1/5.2 durchgeführt und protokolliert, §23S |
+| Eigene Login-View (deutsch, AQMS-Layout, ohne eigenes PageModel) | ✓ | Issue #38 erledigt, §23T.2 |
+| Impressum und Datenschutzerklärung (§ 25 MedienG, Art. 13 DSGVO) | ✓ | ohne Anmeldung erreichbar, im Footer verlinkt, §23T.3 |
+| Chart.js lokal statt CDN (keine externen Ressourcen mehr) | ✓ | byte-identische Fassung unter `wwwroot/lib/chartjs`, §23T.4 |
+| Alle Views auf UTF-8 mit BOM vereinheitlicht | ✓ | keine Umlaut-Ersatzschreibungen mehr, §23T.5 |
 
 ### 32.2 Was noch fehlt
 
@@ -7036,9 +7275,10 @@ unerwähntes Loch ist ein Mangel.
 | Identity-Seeder (Admin-User + Rollen) | ✓ | §23K.3, lokal und auf VPS verifiziert |
 | API-Key-Middleware | ✓ | §23L, in allen drei Umgebungen aktiv, lokal (2026-05-29) und auf VPS (2026-06-01) verifiziert |
 | Lokales Setup auf zwei Geräten (User Secrets) | ✓ | Firmen-Gerät (Docker) + Privat-Gerät (LocalDB) verifiziert, §11.7 |
-| Razor Views: Login (UI-Anpassungen) | ⌛ | Phase 4 (Issue #38) |
 | **Latenter Defekt: `PiOnline`-Schwellwert implizit an Messintervall gekoppelt** | 🟡 | bei 20 s Takt korrekt, bricht lautlos bei jeder Erhöhung; §23R.2 |
 | Worker-Tests (HTTP-Client mit Fake-Handler) | ⌛ | Phase 5 |
+| Nginx-Log-Aufbewahrung gegen `/etc/logrotate.d/nginx` bestätigen | ⌛ | Datenschutzerklärung nennt 14 Tage, §23T.7 |
+| AVV mit netcup abschließen und PDF ablegen | ⌛ | Nachweis nach Art. 28 Abs 9 DSGVO, §23T.7 |
 | Diplomarbeits-Manuskript | 🟡 | Phase 6 (Vorlage existiert) — **kritischer Pfad, Abgabe 31.08.2026** |
 
 ### 32.3 Verlaufs-Updates (chronologisch)
@@ -7276,6 +7516,22 @@ entfernt. Methodische Lesson: ein Board, das nicht mitgepflegt wird, wird zur
 zweiten, widersprechenden Statusquelle neben der Doku; der Abgleich gehört an
 jeden Phasenabschluss.
 
+**Update 2026-08-19 (Web-Frontend und Rechtsseiten):** Die drei Frontend-Arbeiten aus
+§23T sind umgesetzt, verifiziert und auf dem VPS deployed. Die Anmeldeseite hat eine
+eigene deutschsprachige View bekommen (Issue #38 damit erledigt), ohne eigenes
+PageModel — die Anmeldelogik bleibt Bibliothekscode. Impressum und
+Datenschutzerklärung sind angelegt und ohne Konto erreichbar; damit ist der
+öffentliche Betrieb unter `aqms.aqms.example.com` erstmals rechtlich vollständig.
+
+Der Nebenbefund des Tages ist der interessantere: Beim Formulieren der Zusage „alle
+Bibliotheken werden vom eigenen Server ausgeliefert" fiel auf, dass das Dashboard
+Chart.js über ein CDN lädt und damit bei jedem Aufruf die IP-Adresse des angemeldeten
+Benutzers an einen Dritten sendet (§23T.4). Der Mangel bestand seit dem Aufbau des
+Dashboards am 12.07. und war in keinem Test aufgefallen — er ist auch keiner, den ein
+Test finden könnte. **Methodische Lesson: ein Rechtstext ist eine prüfbare Zusage über
+den Code; das Aufschreiben der Datenflüsse hat hier einen Datenfluss gefunden, den das
+Schreiben des Codes übersehen hatte.**
+
 ---
 
 ## 33. Nächste Schritte
@@ -7485,6 +7741,7 @@ bleiben unverändert — sie sind Bildmaterial bzw. Lieferdokumente.
 | 2026-08-06 | 3.0 | **Phase 5 abgeschlossen, Seeder erweitert.** §23K.4 neu: zweites Konto in der Rolle `User` über die Konfigurationssektion `StandardBenutzer`, Anlegevorgang in `EnsureUserAsync` ausgelagert, Admin als Pflichtkonto mit Startabbruch bei fehlender **oder ungültiger** Konfiguration (Unterscheidung „nicht konfiguriert" vs. „konfiguriert und trotzdem nicht anlegbar"), Auswertung von `CreateAsync` als Korrektur am Bestand, Kopplung `EmailConfirmed` ↔ `RequireConfirmedAccount` festgehalten, bewusster Preis der Neustartschleife unter `Restart=always` begründet. §23S neu: Abschluss der Phase 5 mit Testschema und drei methodischen Regeln, eigener Testcontainer auf Port 1434, Migrationstest, Rollentrennung (CSRF-Falle, Erwartung „403" als sachlich falsch korrigiert — Cookie-Handler leitet auf AccessDenied um), Einschleusungsversuch auf zwei Ebenen (Codesuche ohne Treffer + erzeugtes SQL als eigentlicher Beweis), Fehlerdarstellung an echter Ausnahme in Produktionskonfiguration, SSL Labs Note A, Schaltdurchlauf über fünf Geräte mit **erster Messung der Schaltlatenz** (5–9 s, Mittel 6,9 s) und Einordnung gegen die Herleitung in §3.7, Schnittstellenprüfung aus §23M.5/§23N.5 zusammengeführt, drei Praxisprobleme (launchSettings überschreibt Umgebung; fehlender vs. falscher API-Key von außen ununterscheidbar; App im Vordergrund beendet) und vier Lessons Learned. §23Q.3 korrigiert: Titel nannte 9 Tests, die Tabelle listet 8 — `Total: 16` ergibt sich aus 7 Sensor-Methoden (8 Fälle wegen einer `[Theory]`) plus 8 CommandService-Tests. §32 auf Stand 2026-08-06 gesetzt und um 8 Statuszeilen ergänzt. §33.4 von Offen-Liste auf „abgeschlossen" umgeschrieben; offen bleiben Worker-seitige Tests (§33.1) und der neue Nebenbefund HTML-Fehlerantworten unter `/api`. Neue Datei `AQMS_Testprotokolle.md` als Quelle für Anhang D. |
 
 | 2026-08-06 | 3.1 | **Issue-Board mit dem Doku-Stand abgeglichen.** 43 GitHub-Issues geschlossen (42 erledigt, 1 verworfen), jedes mit Verweis auf die belegende Doku-Sektion; offen bleiben nur Polly-Retry, Worker-Tests, Login-Seiten-Gestaltung und die Phase-6-Aufgaben. §32.2 bereinigt: die Zeilen „24h Lauftest" und „Sicherheitstests (SSL Labs etc.)" standen als offen, obwohl §32.1 sie als bestanden führt — entfernt; die Login-Zeile trägt jetzt die Issue-Nummer. §32.3 Update 2026-08-06 ergänzt (Abgleich, aufgedeckte Status-Drift, methodische Lesson). |
+| 2026-08-19 | 3.2 | **Web-Frontend fertiggestellt — öffentlicher Betrieb erstmals rechtlich vollständig.** §23T neu: Login-View, Rechtsseiten und lokale Ausliefervorgaben. Enthält (a) die eigene Anmeldeseite als **View-only-Überschreibung** der Identity-UI — `@model …UI.V5.…Internal.LoginModel` ohne eigenes `.cshtml.cs`, weil die `@model`-Direktive in Razor Pages die PageModel-Klasse bestimmt und die Anmeldelogik damit Bibliothekscode bleibt (Tabelle Scaffolding vs. View-only, Begründung: sicherheitskritischen Fremdcode nicht kopieren, damit Hersteller-Patches weiter greifen); (b) Impressum und Datenschutzerklärung mit Zuordnungstabelle Angabe → Rechtsgrundlage → Fundstelle und drei begründeten Entscheidungen (kleine Offenlegung nach § 25 Abs 5 MedienG statt Unternehmensimpressum, da Betrieb als Privatperson; kein Cookie-Banner, da nur technisch notwendige Cookies nach § 165 Abs 3 TKG 2021; kein Link auf die mit 20.07.2025 eingestellte EU-Streitbeilegungsplattform), samt Abbildung der beschriebenen Verarbeitungen auf den tatsächlichen Code (Nginx-Logs statt Anwendung, `AspNetUsers`, `RequestedByUserId`/`ChangedByUserId`); (c) **Praxisproblem §23T.4**: Chart.js kam über `cdn.jsdelivr.net` — jeder Dashboard-Aufruf sendete die IP des angemeldeten Benutzers an einen Dritten und widersprach zwei Absätzen der eben formulierten Datenschutzerklärung; gelöst durch lokale Ablage der byte-identischen Fassung 4.5.1 unter `wwwroot/lib/chartjs` (MD5-Abgleich), Nebeneffekt: Dashboard ohne CDN-Abhängigkeit vorführbar; (d) §23T.5 Zeichenkodierung, alle Views auf UTF-8 mit BOM vereinheitlicht (BOM-lose Datei bricht lautlos, sobald ein Werkzeug auf die ANSI-Codepage zurückfällt); (e) §23T.6 Verifikationstabelle, §23T.7 drei offene Punkte, §23T.8 vier Lessons Learned. §30.17 neu: fünf verworfene Alternativen (volles Scaffolding, Cookie-Banner „zur Sicherheit", volles Unternehmensimpressum, Beibehaltung des CDN mit Offenlegung, Löschjob für `DeviceCommands`/`StateChanges`). §32 Kopf auf 2026-08-19 · KW 34; §32.1 +4 Zeilen (Login-View, Rechtsseiten, Chart.js lokal, UTF-8/BOM); §32.2 Login-Zeile (Issue #38) als erledigt entfernt, +2 offene Betriebspunkte (logrotate-Frist bestätigen, AVV mit netcup); §32.3 Update 2026-08-19 mit der methodischen Lesson, dass ein Rechtstext eine prüfbare Zusage über den Code ist. Kopf-Standzeile der Datei von 2026-06-07 (Drift) auf den aktuellen Stand gezogen. TOC: §23T ergänzt. Commits `386cde3`, `c2e915f`, `dd726ca`. |
 
 Künftige Änderungen werden hier dokumentiert.
 

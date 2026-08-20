@@ -1,0 +1,148 @@
+﻿@{
+    ViewData["Title"] = "Datenschutzerklärung";
+}
+
+@* ---------------------------------------------------------------------------
+   Datenschutzerklärung nach Art. 13 DSGVO (in Österreich ergänzt durch
+   das DSG und - für Cookies - § 165 Abs 3 TKG 2021).
+
+   Die Erklärung beschreibt bewusst genau das, was AQMS tatsächlich macht:
+   Server-Logs, ein Benutzerkonto über ASP.NET Core Identity, ein technisch
+   notwendiges Anmelde-Cookie und die Sensordaten der Anlage. Es werden keine
+   Analyse-Tools, keine externen Schriftarten und keine CDNs eingebunden -
+   Bootstrap, jQuery und Chart.js liegen lokal unter wwwroot/lib.
+   --------------------------------------------------------------------------- *@
+
+<div class="container" style="max-width: 52rem;">
+
+    <h1 class="mb-4">Datenschutzerklärung</h1>
+
+    <p>
+        Der Schutz personenbezogener Daten ist uns wichtig. Nachfolgend informieren wir
+        gemäß Art. 13 der Datenschutz-Grundverordnung (DSGVO) darüber, welche Daten beim
+        Besuch und bei der Nutzung dieser Anwendung verarbeitet werden.
+    </p>
+
+    <h2 class="h5 mt-4">1. Verantwortlicher</h2>
+    <p>
+        Verantwortlicher im Sinne des Art. 4 Z 7 DSGVO ist der im
+        <a asp-area="" asp-controller="Home" asp-action="Impressum">Impressum</a>
+        genannte Medieninhaber. Dort finden Sie auch die
+        Kontaktdaten für alle datenschutzrechtlichen Anliegen.
+    </p>
+
+    <h2 class="h5 mt-4">2. Aufruf der Website (Server-Logfiles)</h2>
+    @* Diese Logs schreibt nicht die Anwendung, sondern der Nginx, der auf dem VPS
+       vor Kestrel sitzt (Masterdoku §23I/§26). Die Site-Config setzt kein eigenes
+       access_log, es gilt also der Nginx-Default (Format "combined"). *@
+    <p>
+        Beim Aufruf dieser Website werden vom vorgelagerten Webserver automatisch
+        Zugriffsdaten in Logdateien protokolliert: IP-Adresse, Datum und Uhrzeit des
+        Zugriffs, aufgerufene Adresse, HTTP-Statuscode, übertragene Datenmenge sowie
+        die vom Browser übermittelte Kennung (User-Agent) und die verweisende Seite.
+        Diese Daten werden nicht mit anderen Datenquellen zusammengeführt und nicht
+        zur Identifizierung einzelner Personen ausgewertet.
+    </p>
+    <p>
+        <strong>Zweck:</strong> technisch fehlerfreier Betrieb, Fehlersuche und Abwehr von
+        Angriffen.<br />
+        <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse
+        am sicheren Betrieb der Anwendung).<br />
+        <strong>Speicherdauer:</strong> 14 Tage, danach automatische Löschung durch die
+        Rotation der Logdateien.
+    </p>
+
+    <h2 class="h5 mt-4">3. Benutzerkonto und Anmeldung</h2>
+    <p>
+        Die Auswertung der Messdaten ist ausschließlich angemeldeten Personen zugänglich.
+        Eine öffentliche Registrierung besteht nicht.
+        Konten werden ausschließlich administrativ angelegt.
+    </p>
+    <p>
+        <strong>Zweck:</strong> Zugangskontrolle und Zuordnung von Berechtigungen.<br />
+        <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Nutzung der bereitgestellten
+        Funktionen) bzw. Art. 6 Abs. 1 lit. f DSGVO (Schutz vor unberechtigtem Zugriff).<br />
+        <strong>Speicherdauer:</strong> für die Dauer des Benutzerkontos; nach dessen Löschung
+        werden die Daten entfernt.
+    </p>
+
+    <h2 class="h5 mt-4">4. Steuerbefehle und Messdaten</h2>
+    <p>
+        Die von der Anlage gelieferten Sensorwerte (z. B. Temperatur, pH-Wert) sind
+        Umgebungsdaten ohne Personenbezug. Wird über die Anwendung ein Steuerbefehl
+        ausgelöst, wird zu Nachvollziehbarkeits- und Sicherheitszwecken protokolliert,
+        welches Konto den Befehl zu welchem Zeitpunkt ausgelöst hat.
+    </p>
+    <p>
+        <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO (Nachvollziehbarkeit von
+        Eingriffen in die Anlage).<br />
+        <strong>Speicherdauer:</strong> Für die Dauer des Betriebs der Anlage.
+    </p>
+
+    <h2 class="h5 mt-4">5. Cookies</h2>
+    <p>
+        Es werden ausschließlich technisch notwendige Cookies gesetzt: ein Cookie zur
+        Aufrechterhaltung der Anmeldung sowie ein Cookie zum Schutz vor Cross-Site-Request-Forgery.
+        Diese Cookies sind für den Betrieb unbedingt erforderlich und daher gemäß
+        § 165 Abs. 3 TKG 2021 einwilligungsfrei.
+    </p>
+    <p>
+        Es findet <strong>keine</strong> Webanalyse, kein Tracking und keine Erstellung von
+        Nutzungsprofilen statt. Es werden keine externen Schriftarten, Karten- oder
+        Social-Media-Dienste eingebunden; alle benötigten Bibliotheken werden vom eigenen
+        Server ausgeliefert.
+    </p>
+
+    <h2 class="h5 mt-4">6. Empfänger der Daten (Hosting)</h2>
+    <p>
+        Eine Weitergabe personenbezogener Daten an Dritte erfolgt nicht. Die Anwendung wird
+        auf einem virtuellen Server der <strong>netcup GmbH</strong>, Daimlerstraße 25,
+        76185 Karlsruhe, Deutschland, betrieben. netcup wird dabei ausschließlich als
+        Auftragsverarbeiter im Sinne des Art. 28 DSGVO tätig, ist an unsere Weisungen
+        gebunden und verarbeitet die Daten nur insoweit, als dies für den Betrieb der
+        Serverinfrastruktur erforderlich ist.
+    </p>
+    <p>
+        Mit der netcup GmbH wurde ein Vertrag zur Auftragsverarbeitung (AVV) gemäß
+        Art. 28 Abs. 3 DSGVO abgeschlossen, der die Vertraulichkeit, die technischen und
+        organisatorischen Maßnahmen sowie die Löschung der Daten nach Vertragsende regelt.
+    </p>
+    <p>
+        Der eingesetzte Server steht im Rechenzentrum Wien (Österreich).
+        Eine Übermittlung personenbezogener Daten in Länder außerhalb der EU bzw. des EWR
+        findet nicht statt.
+    </p>
+
+    <h2 class="h5 mt-4">7. Datensicherheit</h2>
+    <p>
+        Die Übertragung erfolgt verschlüsselt über HTTPS. Passwörter werden ausschließlich
+        als Hash gespeichert, der Zugriff ist rollenbasiert beschränkt, und angebundene
+        Geräte müssen sich gegenüber der Schnittstelle mit einem geheimen Schlüssel
+        ausweisen.
+    </p>
+
+    <h2 class="h5 mt-4">8. Ihre Rechte</h2>
+    <p>
+        Ihnen stehen gegenüber dem Verantwortlichen die Rechte auf Auskunft (Art. 15 DSGVO),
+        Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung der Verarbeitung (Art. 18),
+        Datenübertragbarkeit (Art. 20) sowie Widerspruch gegen die Verarbeitung (Art. 21) zu.
+        Eine erteilte Einwilligung können Sie jederzeit mit Wirkung für die Zukunft
+        widerrufen (Art. 7 Abs. 3 DSGVO). Zur Ausübung genügt eine Nachricht an die im Impressum genannte E-Mail-Adresse.
+    </p>
+
+    <h2 class="h5 mt-4">9. Beschwerderecht</h2>
+    <p>
+        Wenn Sie der Ansicht sind, dass die Verarbeitung Ihrer Daten gegen das Datenschutzrecht
+        verstößt, können Sie sich bei der Aufsichtsbehörde beschweren:
+    </p>
+    <p class="mb-1">Österreichische Datenschutzbehörde</p>
+    <p class="mb-1">Barichgasse 40–42, 1030 Wien</p>
+    <p class="mb-1">Telefon: +43 1 52 152-0</p>
+    <p class="mb-3">
+        E-Mail: <a href="mailto:dsb@dsb.gv.at">dsb@dsb.gv.at</a> &middot;
+        <a href="https://www.dsb.gv.at" rel="noopener" target="_blank">www.dsb.gv.at</a>
+    </p>
+
+    <p class="text-muted small mt-4">Stand: August 2026</p>
+
+</div>
