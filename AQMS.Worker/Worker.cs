@@ -134,7 +134,7 @@ namespace AQMS.Worker
                                         continue;   // continue überspringt den Rest dieses Schleifendurchlaufs
                                 }
 
-                                // Klassische Shelly-HTTP-API (§7.4) - kompatibel über alle 5 Geräte.
+                                // Klassische Shelly-HTTP-API - kompatibel über alle 5 Geräte.
                                 string shellyUrl = $"http://{command.IPAddress}/relay/0?turn={shellyTurn}";
 
                                 // Ergebnis-Variablen vor dem try deklarieren: sie werden in jedem Zweig
