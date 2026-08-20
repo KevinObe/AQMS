@@ -160,7 +160,7 @@ public class CommandService
         //ein offener befehl pro gerät genügt;
         //
         //vergleich direkt gegen den enum-wert, nicht c.Status.ToString() == "Pending" -
-        //ToString() ist nicht nach SQL übersetzbar (Lesson Learned), der enum-vergleich
+        //ToString() ist nicht nach SQL übersetzbar, der enum-vergleich
         //dagegen schon, weil HasConversion<string>() im DbContext konfiguriert ist;
         var hasPending = await _db.DeviceCommands
             .AnyAsync(c => c.DeviceId == deviceId && c.Status == CommandStatus.Pending);

@@ -259,7 +259,7 @@ public class AqmsDbContext(DbContextOptions<AqmsDbContext> options) : IdentityDb
             .HasForeignKey(m => m.MeasurementTypeId)
             .OnDelete(DeleteBehavior.Restrict);
 
-            // Composite Index: schneller Lookup "alle Werte eines Geraets in Zeitraum X"
+            // Composite Index: schneller Lookup "alle Werte eines Geräts in Zeitraum X"
             entity.HasIndex(m => new { m.DeviceId, m.Timestamp });
 
             // Globaler Index auf Timestamp (z.B. Cleanup-Jobs, Gesamt-Queries)

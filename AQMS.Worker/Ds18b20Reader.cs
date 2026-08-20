@@ -30,7 +30,7 @@ public class Ds18b20Reader(ILogger<Ds18b20Reader> logger)
             // w1_slave im gefundenen Ordner lesen.
             //path combine methode statt string verkettung, kümmert sich um / etc automatisch
             string filePath = Path.Combine(directory[0], "w1_slave");
-            //asynchrones auslesen, blockieren des lese oder mess vorgangs vermeiden mit paralellen tasks
+            //asynchrones auslesen, blockieren des lese oder mess vorgangs vermeiden mit parallelen tasks
             string content = await File.ReadAllTextAsync(filePath, stoppingToken);
 
             //übergabe des gelesenenen content der datei and die parsetemperature methode zur verarbeitung
