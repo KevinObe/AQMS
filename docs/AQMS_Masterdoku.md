@@ -3,48 +3,26 @@
 **Aquarium Monitoring & Control System**
 Kevin Oberluggauer · FAAI WIFI Tirol · 2025/2026
 
-> **Hinweis zur veröffentlichten Fassung.** Dies ist die bereinigte
-> Abgabe-Version. Zwei Punkte weichen vom Arbeitsdokument ab:
->
-> 1. **Anonymisierung.** Server-IPs, Domain, SSH-Benutzername und
->    E-Mail-Adressen sind durch reservierte Doku-Werte ersetzt
->    (`203.0.113.x` nach RFC 5737, `aqms.example.com` nach RFC 2606,
->    Benutzer `deployuser`). Sie sind absichtlich nicht funktionsfähig.
->    Die Adressen `10.0.0.222`–`10.0.0.227` sind private LAN-Adressen
->    (RFC 1918) und blieben unverändert.
-> 2. **Entfernte Verweise.** Im Text genannte Begleitdateien —
->    `AQMS_Projektstand_<datum>.md` sowie die Ordner `docs/DB_Setup`,
->    `docs/db_schema`, `docs/VS_Setup`, `docs/VPS_Setup`, `docs/Hardware`
->    und `docs/Projektmanagement` — sind nicht Teil dieser Veröffentlichung.
->    Ihr Inhalt ist in dieses Dokument konsolidiert; die Verweise bleiben
->    aus Gründen der Nachvollziehbarkeit im Text stehen.
+> **Hinweis zur Fassung.** Dies ist die bereinigte Abgabe-Fassung.
+> Server-IPs, Domain, Benutzernamen und E-Mail-Adressen sind durch
+> reservierte Doku-Werte ersetzt (`203.0.113.x` nach RFC 5737,
+> `aqms.example.com` nach RFC 2606, Benutzer `deployuser` und `piuser`).
+> Sie sind absichtlich nicht funktionsfähig. Die Adressen
+> `10.0.0.222`–`10.0.0.227` sind private LAN-Adressen (RFC 1918) und
+> blieben unverändert.
 
 ---
 
 > Diese Datei ist das **chronologische Projekt-Tagebuch** von AQMS-2026.
 > Sie dokumentiert lückenlos den gesamten Verlauf von der ersten Projektidee
-> bis zum aktuellen Stand: Projektplanung, Architektur, Hardware-Aufbau,
+> bis zum Projektabschluss: Projektplanung, Architektur, Hardware-Aufbau,
 > Netzwerkkonfiguration, Visual-Studio-Setup, Persistenzschicht inkl. aller
 > Designentscheidungen, VPS-Deployment — jeweils mit **Kontext, Begründung,
 > Problemen und Lösungen**, einschließlich verworfener Alternativen und
 > Praxisprobleme. Als Tagebuch enthält sie bewusst auch historische Stände,
-> die inzwischen überholt sind (jeweils als solche markiert).
+> die inzwischen überholt sind; diese sind als solche markiert.
 >
-> **Für den aktuellen, bereinigten Ist-Stand des Projekts** (was *jetzt*
-> gebaut und konfiguriert ist, ohne historische Drift) siehe die separate
-> Datei `AQMS_Projektstand_<datum>.md`. Diese Master-Doku bleibt das
-> Tagebuch; der Projektstand ist die Single Source of Truth für „wie ist es
-> jetzt".
->
-> Die Doku dient drei Zwecken: erstens als Wiedereinstiegsdokument bei Pausen,
-> zweitens als Quellmaterial für die Diplomarbeit (insbesondere der
-> Verlaufs- und Lessons-Learned-Teil), drittens als technische Referenz für
-> die noch ausstehende Implementierung.
->
-> Alle vorherigen Einzeldokumente in `docs/DB_Setup`, `docs/db_schema`,
-> `docs/VS_Setup`, `docs/VPS_Setup`, `docs/Hardware` und `docs/Projektmanagement`
-> wurden in diese Master-Doku konsolidiert. Die Originaldateien bleiben als
-> Versionsstände erhalten, sind aber als VERALTET markiert.
+> Den technischen Ist-Stand zum Projektabschluss fasst §31 zusammen.
 
 **Stand:** 2026-08-19 · KW 34 · Web-Frontend fertiggestellt: eigene Login-View, Impressum und Datenschutzerklärung, Chart.js lokal (§23T)
 
@@ -77,8 +55,8 @@ Kevin Oberluggauer · FAAI WIFI Tirol · 2025/2026
    - 7.4 Shelly-API: zwei Modelle
    - 7.5 Manuelle Tests vom Pi aus + Test-Loop
    - 7.6 Kommunikationsmodell
-   - 7.7 Diplomarbeit-Argumentation
-   - 7.8 Was der Worker später macht
+   - 7.7 Einordnung der beiden API-Stile
+   - 7.8 Rolle der Shellys im Worker-Ablauf
 
 **Teil C — Entwicklungsumgebung und Solution**
 8. [Entwicklungstools](#8-entwicklungstools)
@@ -131,15 +109,14 @@ Kevin Oberluggauer · FAAI WIFI Tirol · 2025/2026
 27. [HTTPS mit Let's Encrypt](#27-https-mit-lets-encrypt)
 28. [Praxisproblem: Upload-Rechte für deployuser](#28-praxisproblem-upload-rechte-für-deployuser)
 
-**Teil F — Diplomarbeit-Material**
-29. [Argumentationen für die Verteidigung](#29-argumentationen-für-die-verteidigung)
-30. [Reflexion: Verworfene Alternativen](#30-reflexion-verworfene-alternativen)
-31. [Glossar](#31-glossar)
+**Teil F — Entwurfsreflexion**
+29. [Reflexion: Verworfene Alternativen](#29-reflexion-verworfene-alternativen)
+30. [Glossar](#30-glossar)
 
-**Teil G — Status und Roadmap**
-32. [Aktueller technischer Stand](#32-aktueller-technischer-stand)
-33. [Nächste Schritte](#33-nächste-schritte)
-34. [Doku-Versionierung und veraltete Dateien](#34-doku-versionierung-und-veraltete-dateien)
+**Teil G — Stand zum Projektabschluss**
+31. [Technischer Stand](#31-technischer-stand)
+32. [Offene Punkte und Ausblick](#32-offene-punkte-und-ausblick)
+33. [Doku-Versionierung](#33-doku-versionierung)
 
 ---
 
@@ -157,7 +134,7 @@ und besteht aus drei verteilten Komponenten:
 - **Edge Device** (Raspberry Pi 3B+ im Heimnetz): Temperaturmessung über
   DS18B20-Sensor, Steuerung der Shelly Smart Plugs.
 - **Backend** (Linux-VPS, öffentlich erreichbar als
-  `aqms.aqms.example.com`): ASP.NET-Core-MVC-Anwendung mit SQL-Server-DB,
+  `aqms.example.com`): ASP.NET-Core-MVC-Anwendung mit SQL-Server-DB,
   REST-API und Web-Dashboard.
 - **Aktoren** (5x Shelly Smart Plug): schalten 230V-Verbraucher
   (Filter, Licht, CO2-Anlage, Skimmer, Heizstab).
@@ -183,7 +160,7 @@ Das System soll:
 | Gesamtbudget | ca. 200 € |
 | Projektleitung / Diplomand | Kevin Oberluggauer |
 | Bildungseinrichtung | FAAI WIFI Tirol |
-| Domain Backend | aqms.aqms.example.com |
+| Domain Backend | aqms.example.com |
 | VPS IP (aktuell, Debian 13) | 203.0.113.10 |
 | VPS IP (alt, Debian 12, stillgelegt) | 203.0.113.11 |
 | Pi IP (Heimnetz) | 10.0.0.222 |
@@ -209,8 +186,8 @@ Linux-VPS, Code-First-Datenbankdesign in 3NF/BCNF.
 ### 2.1 Phasenübersicht
 
 Das Projekt ist in sechs Phasen gegliedert. Die Phasen folgen dem
-PSP-Strukturplan ([docs/Projektmanagement/AQMS_PSP.md](Projektmanagement/AQMS_PSP.md))
-und enden jeweils mit einem definierten Meilenstein.
+Projektstrukturplan (PSP) und enden jeweils mit einem definierten
+Meilenstein.
 
 | Nr. | Phase | Zeitraum | Meilenstein | Datum | Abnahme |
 |---|---|---|---|---|---|
@@ -221,19 +198,14 @@ und enden jeweils mit einem definierten Meilenstein.
 | 5 | Testing | KW 28–31 | MS5 — Alle Tests bestanden, System stabil | 21.07.2026 | WIFI-Trainer |
 | 6 | Doku & Abgabe | KW 31–36 | MS6 — Diplomarbeit eingereicht | 31.08.2026 | Prüfungskommission |
 
-### 2.2 Aktueller Phasen-Stand
+### 2.2 Phasen-Stand
 
-> Der laufend gepflegte Phasen- und Komponentenstand steht in **§32**
-> (innerhalb dieses Tagebuchs) sowie in der separaten, bereinigten Datei
-> **`AQMS_Projektstand_<datum>.md`** (Single Source of Truth für den
-> Ist-Stand). Dieser Abschnitt wird **nicht mehr separat gepflegt**, um
-> konkurrierende Status-Angaben zu vermeiden.
+> Der Komponenten- und Phasenstand wird an einer einzigen Stelle geführt:
+> **§31**. Dieser Abschnitt verweist bewusst dorthin, um konkurrierende
+> Status-Angaben zu vermeiden.
 >
-> Kurzfassung zum Datum dieser Doku-Version: Phase 1 abgeschlossen; Phase 2
-> (Worker-Software) offen bei stehender Hardware; Phase 3 (Backend)
-> teilweise — Persistenz, IdentitySeeder, API-Key-Middleware und
-> MeasurementsController stehen und sind VPS-verifiziert; Phasen 4–6
-> ausstehend.
+> Kurzfassung zum Projektabschluss: Die Phasen 1 bis 5 sind abgeschlossen
+> und verifiziert; Phase 6 (Doku und Abgabe) schließt das Projekt ab.
 
 ### 2.3 GZ 1 — Vorbereitung (abgeschlossen)
 
@@ -287,7 +259,7 @@ und enden jeweils mit einem definierten Meilenstein.
                          │  HTTPS (Login, Dashboard, Toggle)
                          ▼
         ┌────────────────────────────────────────┐
-        │  VPS (Linux, aqms.aqms.example.com)       │
+        │  VPS (Linux, aqms.example.com)       │
         │  ┌──────────────────────────────────┐  │
         │  │  Nginx (Port 443, TLS)           │  │
         │  │     ↓ Reverse Proxy              │  │
@@ -355,7 +327,7 @@ Verworfene Alternativen:
 Nachteil von Polling: Maximale Reaktionszeit = Polling-Intervall = 10
 Sekunden. Für ein Aquarium völlig akzeptabel.
 
-### 3.3 API-Endpunkte (geplant)
+### 3.3 API-Endpunkte
 
 | Methode | Endpoint | Aufrufer | Zweck |
 |---|---|---|---|
@@ -386,8 +358,8 @@ der Web-Routen durch **ASP.NET Identity** mit Rollen.
 | Backend | Authentifizierung | ASP.NET Identity | Nativ ASP.NET Core |
 | Backend | Reverse Proxy | Nginx | Extern (Linux-Tool) |
 | Backend | TLS-Zertifikat | Let's Encrypt / Certbot | Extern (kostenlos) |
-| Frontend | CSS Framework | Bootstrap 5 | Extern (CDN) |
-| Frontend | Diagramme | Chart.js | Extern (CDN) |
+| Frontend | CSS Framework | Bootstrap 5 | Extern (lokal ausgeliefert) |
+| Frontend | Diagramme | Chart.js | Extern (lokal ausgeliefert) |
 | Kommunikation | Pi → VPS | HTTPS / REST / Polling | Konzept |
 | Kommunikation | Pi → Shelly | Lokale HTTP-API | Konzept |
 | Sicherheit | API-Schutz | API-Key Middleware | Selbst implementiert |
@@ -419,9 +391,12 @@ Keycloak) nötig.
 (siehe §3.2). Polling ist die einfachste, robusteste und am besten
 dokumentierbare Variante.
 
-**Chart.js** ist die einzige echte externe Frontend-Abhängigkeit. Per CDN
-eingebunden, kein npm/Build-Prozess. Kostenlos, gut dokumentiert, deutlich
-einfacher als D3.js, kostenlos im Gegensatz zu Highcharts.
+**Chart.js** ist die einzige echte externe Frontend-Abhängigkeit. Kein
+npm/Build-Prozess, kostenlos, gut dokumentiert, deutlich einfacher als
+D3.js und im Gegensatz zu Highcharts kostenfrei nutzbar. Die Bibliothek
+wird — wie Bootstrap und jQuery — vom eigenen Server aus `wwwroot/lib`
+ausgeliefert; die ursprüngliche CDN-Einbindung wurde bewusst abgelöst
+(Begründung und Verlauf in §23T.4).
 
 **Nginx als Reverse Proxy** vor Kestrel:
 
@@ -510,14 +485,14 @@ Erste Konfiguration erfolgte **lokal über Tastatur und Monitor** am Pi
 
 | Schritt | Aktion |
 |---|---|
-| Benutzer anlegen | User `kev` mit Passwort |
+| Benutzer anlegen | User `piuser` mit Passwort |
 | Netzwerk testen | initial per Ethernet (Kabel) — funktionierte |
 | SSH aktivieren | `sudo raspi-config` → Interface Options → SSH → Enable |
 | WLAN-Hardware prüfen | vorhanden, funktionsfähig |
 | Bluetooth | vorhanden, optional, nicht aktiv genutzt |
 
 Nach SSH-Aktivierung läuft die weitere Konfiguration headless über
-`ssh kev@10.0.0.222`. WLAN-Setup siehe §6.
+`ssh piuser@10.0.0.222`. WLAN-Setup siehe §6.
 
 #### 5.3.3 Sicherheitshinweis Standardpasswort
 
@@ -580,8 +555,7 @@ geklemmt — direkt am Header oder auf einem Steckbrett.
 ### 5.5 Das Pull-Up-Problem: Diagnose und Lösung
 
 > Diese Sektion dokumentiert ein konkretes Praxisproblem aus der
-> Hardware-Inbetriebnahme — wertvoll für die Diplomarbeit, weil es zeigt,
-> dass Hardware-Debugging strukturiert geht.
+> Hardware-Inbetriebnahme nach dem Schema Symptom, Ursache, Lösung.
 
 **Symptom:** nach dem ersten Anschluss des DS18B20 (ohne externen
 Widerstand, in der Annahme der Sensor habe internen Pull-Up) erschien
@@ -624,7 +598,7 @@ $ ls /sys/bus/w1/devices/
 
 Sensor stabil erkannt.
 
-**Lessons Learned (für die Diplomarbeit):**
+**Lessons Learned:**
 
 - Sensorik auf Hardware-Ebene erfordert korrekte elektrische Grundlagen
 - Händler-Dokumentation ist nicht immer eindeutig (interner vs. externer Pull-Up)
@@ -746,9 +720,12 @@ def read_temp():
 print(f"Temperatur: {read_temp()} °C")
 ```
 
-#### Geplante C#-Umsetzung im AQMS.Worker (Phase 2)
+#### Erster C#-Entwurf für den AQMS.Worker (Phase 2)
 
-Skelett für die spätere Implementierung:
+> **Historischer Stand.** Das folgende Skelett war der erste Entwurf aus
+> Phase 1. Die umgesetzte Klasse heißt `Ds18b20Reader`, findet den Sensor
+> per Glob statt über eine übergebene ROM-ID und trennt die Parse-Logik in
+> eine statische, unit-testbare Methode — siehe §11.10 und §23Q.2.
 
 ```csharp
 public class DS18B20Reader
@@ -814,7 +791,7 @@ Eindringen von Flüssigkeiten und ist galvanisch vom 230V-Netz getrennt.
 ### 6.1 Ausgangslage
 
 - Raspberry Pi 3B+ mit **Debian Trixie** (Raspberry Pi OS Lite 64-bit)
-- User: `kev` (für SSH und Login)
+- User: `piuser` (für SSH und Login)
 - Kein Netzwerkkabel verfügbar → WLAN-Verbindung nötig
 - Ziel: stabile, automatische WLAN-Verbindung mit fester IP
 
@@ -874,7 +851,7 @@ nmcli device                       # zeigt wlan0 connected HomeWLAN
 ```
 
 Damit ist der Pi headless betreibbar — Boot mit automatischer
-WLAN-Verbindung, fester IP, SSH-Zugriff über `ssh kev@10.0.0.222`.
+WLAN-Verbindung, fester IP, SSH-Zugriff über `ssh piuser@10.0.0.222`.
 
 ---
 
@@ -909,8 +886,7 @@ liefern die Grundlage für die spätere Identifikation im Router (siehe §7.2).
 ### 7.2 DHCP-Reservierung am Router
 
 **Router:** A1 Glasfaser-Router (genaues Modell projektintern nicht
-weiter spezifiziert — der konkrete Web-Interface-Workflow ist im
-Anhang der Diplomarbeit per Screenshots dokumentiert).
+weiter spezifiziert).
 
 **Workflow (allgemein bei den meisten Routern, sinngemäß auch beim A1-Router):**
 
@@ -924,13 +900,6 @@ Anhang der Diplomarbeit per Screenshots dokumentiert).
 4. Pro Shelly: **DHCP-Reservierung anlegen** — der Router merkt sich die
    MAC-Adresse und ordnet ihr immer dieselbe IP zu.
 5. **Ziel-IPs vergeben** gemäß folgender Tabelle.
-
-> **Hinweis:** Die konkreten Schritte im A1-Router-Interface sind in
-> separaten Screenshots dokumentiert. Diese gehören als Bildanhang in die
-> Diplomarbeit (Kapitel "Hardware-Setup" / "Netzwerkkonfiguration").
-> Stand 09.05.2026 liegen die Screenshots noch außerhalb des
-> `docs/`-Repositorys — sie sollten in `docs/Hardware/Router-Screenshots/`
-> einsortiert und in der Diplomarbeit referenziert werden.
 
 ### 7.3 Endgültiger IP-Plan
 
@@ -989,7 +958,7 @@ aus per `curl` getestet — als Funktionsnachweis dass die Kommunikationskette
 
 ```bash
 # Vom Pi aus:
-ssh kev@10.0.0.222
+ssh piuser@10.0.0.222
 
 # Filter einschalten (klassisch)
 curl http://10.0.0.227/relay/0?turn=on
@@ -1051,31 +1020,35 @@ Funktionsnachweis für **Phase 1 (Hardware)** erbracht.
   - keine sensiblen Daten in der Übertragung
   - Komplexität minimiert (kein TLS-Setup auf jedem Shelly)
 
-### 7.7 Diplomarbeit-Argumentation
+### 7.7 Einordnung der beiden API-Stile
 
-Beide API-Stile in der Arbeit erwähnen:
+Beide Stile wurden in §7.5 gegen alle fünf Geräte geprüft. Der klassische
+HTTP-Aufruf (`/relay/0?turn=on`) diente dem schnellen Hardwaretest. Das
+JSON-RPC-Modell (`Switch.Set`) ist die offizielle API-Struktur aktueller
+Shelly-OS-Geräte (Shelly 2024).
 
-> *Der klassische HTTP-Aufruf (`/relay/0?turn=on`) wurde für den schnellen
-> Hardwaretest genutzt. Das moderne JSON-RPC-Modell (`Switch.Set`) stellt
-> die offizielle API-Struktur aktueller Shelly-OS-Geräte dar (Shelly 2024)
-> und wird im Worker-Service als bevorzugte Variante implementiert.*
+Für den Worker-Service fiel die Wahl dennoch auf die **klassische API**:
+sie ist über Gen1 **und** Gen2+ hinweg kompatibel und deckt damit eine
+möglicherweise gemischte Gerätegeneration mit einer einzigen URL-Form ab.
+Die vollständige Begründung steht bei der Umsetzung in §11.8.
 
 Quellen: [shelly-api-docs.shelly.cloud](https://shelly-api-docs.shelly.cloud).
 
-### 7.8 Was der Worker später macht
+### 7.8 Rolle der Shellys im Worker-Ablauf
 
-Das C#-Worker-Pattern (Phase 2, noch nicht implementiert):
+Der Ablauf, den der Worker gegenüber den Shellys umsetzt (Umsetzung in
+§11.6 bis §11.9):
 
 ```
 1. Polling-Loop, alle 10s:
-   GET aqms.aqms.example.com/api/commands/pending
+   GET aqms.example.com/api/commands/pending
 
 2. Pro pendingem Befehl:
    GET 10.0.0.{ip}/relay/0?turn=on|off
    → Antwort verarbeiten
 
 3. Ergebnis melden:
-   POST aqms.aqms.example.com/api/commands/result
+   POST aqms.example.com/api/commands/result
 ```
 
 ---
@@ -1117,7 +1090,7 @@ erfordern.
 Bereits eingerichtet (siehe §6):
 
 - Debian Trixie
-- SSH-Zugriff über `ssh kev@10.0.0.222`
+- SSH-Zugriff über `ssh piuser@10.0.0.222`
 - DS18B20 angeschlossen und auslesbar
 
 Auf dem Pi wird später nur die **Runtime** des Worker-Service liegen — das
@@ -1189,7 +1162,11 @@ Die alten Projektordner (`AQMS_Web`, `AQMS_Test`, `RaspiWorkerService`)
 wurden gelöscht. Im Git-Status erscheinen sie als "deleted" — die neuen
 Projekte als "untracked" bis zum Commit.
 
-### 9.4 Aktuelle Solution (Stand Mai 2026)
+### 9.4 Solution nach der Restrukturierung (Stand Mai 2026)
+
+> **Historischer Stand.** Der Baum zeigt die Struktur unmittelbar nach der
+> Umbenennung. Worker und Tests waren zu diesem Zeitpunkt noch Gerüste;
+> ihre Ausarbeitung folgt ab §11.6 (Worker) und §23Q (Tests).
 
 ```
 AQMS-2026/
@@ -1286,17 +1263,18 @@ der die `HttpMessageHandler` poolt und deren Lebensdauer steuert. Als
 *named client* (`"aqms-api"`) bündelt er BaseAddress und den
 `X-API-Key`-Header an einer Stelle.
 
-Im Verlauf von Phase 2 kommen voraussichtlich noch dazu:
-
-- `System.IO.Ports` (eventuell, falls 1-Wire-Fallback nötig)
-- `Polly` (für Retry-Logik bei HTTP-Calls)
+Weitere Pakete kamen im Verlauf von Phase 2 nicht hinzu. Ein
+`System.IO.Ports`-Fallback für 1-Wire wurde nicht gebraucht — die
+sysfs-Auslesung genügt (§11.10). `Polly` für Retry-Logik wurde bewusst
+zurückgestellt (§29.16).
 
 ### 10.3 AQMS.Tests — Pakete
 
-Standard xUnit-Template, später Erweiterung um:
-
-- `Microsoft.EntityFrameworkCore.InMemory` (für DbContext-Tests)
-- `Moq` (Mocking)
+Standard xUnit-Template, erweitert um
+`Microsoft.EntityFrameworkCore.InMemory` für die `CommandService`-Tests
+(§23Q.1). Ein Mocking-Framework wurde nicht benötigt: die getestete
+Parse-Logik ist statisch und hardwarefrei, der Service arbeitet gegen den
+InMemory-Provider.
 
 ### 10.4 Installations-Befehle (zur Reproduktion)
 
@@ -1400,7 +1378,7 @@ steht im `AQMS.Web.csproj` und verlinkt das Projekt mit dem Secret-Store.
 ### 11.3 Production: Umgebungsvariable auf dem VPS
 
 Auf dem VPS wird die Connection-String per **Umgebungsvariable** in der
-systemd-Unit gesetzt (siehe §25.5):
+systemd-Unit gesetzt (aktueller Server: §23H.3; historischer Stand: §25.5):
 
 ```ini
 Environment=ConnectionStrings__DefaultConnection=Server=...;Database=AQMS;User Id=...;Password=...
@@ -1419,7 +1397,13 @@ environment-spezifische Konfiguration enthalten — werden für AQMS aber
 **nicht als Träger von Connection-Strings oder Passwörtern verwendet**.
 Begründung und Workflow siehe §11.7 (OneDrive-Sync-Problematik).
 
-### 11.5 `AQMS.Web/Program.cs`
+### 11.5 `AQMS.Web/Program.cs` (Ausgangsstand Mai 2026)
+
+> **Historischer Stand.** Das folgende Listing zeigt die `Program.cs` vor
+> Beginn der Phase 3. Die ausgelieferte Fassung enthält zusätzlich die
+> Rollen-Registrierung (`AddRoles<IdentityRole>()`, §23K.3), den
+> `CommandService` als Scoped-Registrierung (§23N.4) und die
+> API-Key-Middleware (§23L.4).
 
 ```csharp
 using AQMS.Web.Data;
@@ -1480,12 +1464,14 @@ app.Run();
 | `UseExceptionHandler/UseHsts` | Production-Sicherheit |
 | `MapRazorPages()` | für Identity-UI (Login/Register sind Razor Pages) |
 
-**Was noch fehlt** (geplant für Phase 3):
+**Was zu diesem Zeitpunkt noch fehlte** und in Phase 3 ergänzt wurde:
 
-- API-Key Middleware
-- API-Controller `/api/measurements`, `/api/commands/...`
-- Repository-Layer
-- Custom Error-Handling Middleware
+- API-Key-Middleware (§23L)
+- API-Controller `/api/measurements` (§23M) und `/api/commands/...` (§23N)
+- eine Geschäftslogik-Schicht — umgesetzt als schlanker Service-Layer;
+  der ursprünglich vorgesehene Repository-Layer wurde verworfen (§29.12)
+- zentrale Fehlerbehandlung — umgesetzt über den eingebauten
+  `UseExceptionHandler` statt einer eigenen Middleware (§23M.2)
 
 ### 11.6 `AQMS.Worker/Program.cs` (HttpClient registriert, 2026-06-07)
 
@@ -1545,7 +1531,7 @@ dotnet user-secrets set "ApiKey" "<DEIN_KEY>" --project AQMS.Worker
 **Warum `ApiKey` flach (nicht `AqmsApi:ApiKey`).** Zwei Gründe:
 
 1. *Konsistenz.* Die API-Key-Middleware liest den Schlüssel als
-   `config["ApiKey"]` — flach (§23L). §11.7 / §7 (Projektstand) halten fest,
+   `config["ApiKey"]` — flach (§23L). §11.7 hält fest,
    dass Worker und API **denselben Wert** teilen. Gleicher Name an beiden
    Enden macht diese Beziehung im Config sichtbar.
 2. *systemd-Stolperfalle.* `ApiKey` ist der einzige Worker-Wert, der auf dem
@@ -1585,23 +1571,23 @@ unverzichtbar:
 **Verifiziert am 2026-06-28 (lokal + VPS).** *Resilienz lokal:* bei gestoppter
 `AQMS.Web` loggt der Worker den Fehler und **pollt weiter**, der Host bleibt am
 Leben; nach Neustart liefert der nächste Poll wieder `Status: OK`. *VPS:*
-`GET /api/commands/pending` über `https://aqms.aqms.example.com` mit VPS-API-Key
+`GET /api/commands/pending` über `https://aqms.example.com` mit VPS-API-Key
 liefert `200`, der Worker loggt wiederholt `Status: OK` — volle Kette Worker →
 Nginx → Kestrel → ApiKeyMiddleware → CommandsController → CommandService → SQL
-Server produktiv bewiesen (§32.3 Update 2026-06-28).
+Server produktiv bewiesen (§31.3 Update 2026-06-28).
 
 **Resilienz-Punkte (Stand 2026-07-02):** (a) **Gelöst (§11.9):** Timeout-vs-Shutdown — der
 `aqms-api`-Client hat einen eigenen 10-s-Timeout, und Poll wie Result-Meldung fangen die
 Timeout-`TaskCanceledException` gezielt per `when (!stoppingToken.IsCancellationRequested)` ab
-(Shutdown läuft durch). Noch offen: (b) echte Backoff-Retry (Polly, §33.1) ergänzt das
+(Shutdown läuft durch). Noch offen: (b) echte Backoff-Retry (Polly, §32.3) ergänzt das
 manuelle Fangen später, ersetzt es nicht; (c) der fehlgeschlagene Request wird dreifach
 geloggt (zwei `IHttpClientFactory`-Info-Logs + eigenes `LogError`); Abhilfe
 `System.Net.Http.HttpClient` auf `Warning`.
 
 Der Empfangs- und Parse-Pfad wurde später erweitert (Deserialisierung, geräte-
 übergreifender Poll mit `DeviceIdentifier` + `IPAddress`) — siehe §23N.8. Die
-DS18B20-Auslesung und die Shelly-Steuerung folgen als nächste Worker-Einheiten
-in Phase 2.
+Shelly-Steuerung folgt in §11.8, das Result-Reporting in §11.9 und die
+DS18B20-Auslesung in §11.10.
 
 ### 11.7 Mehrgerät-Realität und bewusste Wahl gegen `appsettings.Development.json`
 
@@ -1773,7 +1759,7 @@ behandelt, nicht als Fehler — er beweist, dass der Befehl sauber durch ist. De
 `übersprungen` → `gemeldet (Success=False)` → `Failed`; der Folge-Poll zeigt `Status: OK`
 **ohne** „Befehl empfangen" (Zyklus geschlossen, kein Dauer-Feuern mehr). Anschließend auf den
 Pi re-deployt und dort gegen den VPS verifiziert (`Hosting environment: Production`, Poll
-gegen `aqms.aqms.example.com`).
+gegen `aqms.example.com`).
 
 ### 11.10 Sensor-Pfad: DS18B20 → /api/measurements (2026-07-07)
 
@@ -1785,7 +1771,7 @@ sucht den Sensor per `Directory.GetDirectories("/sys/bus/w1/devices", "28-*")` (
 hartcodierter ROM-ID → überlebt Sensortausch), liest `w1_slave` mit `File.ReadAllTextAsync`
 (blockiert ~750 ms wegen Sensor-Konversion, daher async) und übergibt an `ParseTemperature`.
 Die Parse-Logik ist bewusst **`static`** und nimmt nur den String — dadurch **ohne Hardware
-am Dev-Rechner unit-testbar** (der xUnit-Kandidat, §33.1). Sie prüft die CRC-Zeile (Zeile 1
+am Dev-Rechner unit-testbar** (umgesetzt in §23Q.2). Sie prüft die CRC-Zeile (Zeile 1
 muss mit `YES` enden — sonst `null`, „lieber kein Wert als ein falscher"), extrahiert den
 `t=`-Wert und teilt durch `1000.0` (Milligrad → °C). Registriert als `AddSingleton`
 (zustandslos, wird vom Singleton-Worker konsumiert).
@@ -1804,9 +1790,9 @@ Ein verlorener Messwert ist unkritisch — die nächste Kadenz liest einen frisc
 Temperaturwert nachzuliefern wäre sogar schädlich (veraltete Daten in einer Zeitreihe).
 Loggen, weitermachen.
 
-**Sensor-Health-Eskalation (Option A).** Ein Zähler `continousSensorErrors` (im
+**Sensor-Health-Eskalation (Option A).** Ein Zähler `continuousSensorErrors` (im
 `ExecuteAsync`-Scope, überlebt die Mess-Zyklen) zählt aufeinanderfolgende Fehl-Reads; ab
-`Worker:MaxContinousSensorErrors` (Default 10) wird von `LogWarning` auf `LogError`
+`Worker:MaxContinuousSensorErrors` (Default 10) wird von `LogWarning` auf `LogError`
 eskaliert, Reset bei jedem gültigen Read. Grund: Ein *einzelner* verworfener Read ist
 Grundrauschen; ein *Dauerausfall* (Sensor abgezogen, Kabelbruch) würde sonst unbemerkt als
 Stille durchlaufen — für ein Monitoring-System der gefährlichste Zustand („meldet nichts"
@@ -1815,8 +1801,8 @@ ununterscheidbar von „alles ok"). Eskalationszeit = Schwelle × Mess-Intervall
 sichtbar) ist bewusst als Ausblick eingeordnet (Option B, Phase 4) — Problem erkannt,
 schlanke Lösung gebaut, vollständige später.
 
-**Kadenz.** `Worker:MeasurementIntervalSeconds` (Default 60, im Betrieb 20) entkoppelt die
-Messung vom 5-s-Command-Poll (sonst DB-Flut). Umsetzung: ein **Zeitvergleich** im bestehenden
+**Kadenz.** `Worker:MeasurementIntervalSeconds` (20 s, §23R.1) entkoppelt die
+Messung vom 10-s-Command-Poll (sonst DB-Flut). Umsetzung: ein **Zeitvergleich** im bestehenden
 Loop (`DateTime.UtcNow - lastMeasurement >= …`) statt eines zweiten Timers/Threads — weniger
 bewegliche Teile. `lastMeasurement = DateTime.MinValue` initial → erste Messung sofort beim
 Start; danach nur bei tatsächlichem Aufruf aktualisiert.
@@ -1825,7 +1811,7 @@ Start; danach nur bei tatsächlichem Aufruf aktualisiert.
 selben Loop wie der Command-Poll. Zwei bewusst in Kauf genommene Konsequenzen: (1) Während
 einer Messung pollt der Worker kurz keine Befehle — ein Schaltbefehl kann sich um bis zu
 ~10 s verzögern (unkritisch für Aquarium-Aktoren). (2) Die effektive Mess-Kadenz ist an das
-Poll-Raster gequantelt — sie trifft nur Vielfache des Poll-Intervalls (bei 20 s = 4 × 5 s
+Poll-Raster gequantelt — sie trifft nur Vielfache des Poll-Intervalls (bei 20 s = 2 × 10 s
 geht das glatt auf). Ein zweiter Loop/Thread würde beides entkoppeln, brächte aber
 Synchronisations-Komplexität; für einen Ein-Zweck-Edge-Dienst ist der eine Loop die
 einfachere, robustere Wahl.
@@ -1835,13 +1821,15 @@ Log `Messung gesendet: 25.125 °C`; die `Measurements`-Tabelle füllt sich mit p
 Werten im Mess-Intervall. Damit ist **Phase 2 funktional abgeschlossen**: der Pi macht
 Steuerung **und** Monitoring.
 
-**Bekannte offene Punkte (Politur, nicht funktional blockierend):** `double`-Speicherung
-zeigt Fließkomma-Artefakte (`25.062000…1`) — `decimal` wäre exakt, für Aquarium-Temperaturen
-irrelevant; dreifaches Logging und der Config-Key-Tippfehler `MaxContinousSensorErrors`
-(→ `Continuous`) bleiben offen (§33.1). Polly-Retry wurde bewusst zurückgestellt (§30.16).
+**Bekannte Politur-Punkte (nicht funktional blockierend):** Die
+`double`-Speicherung zeigt Fließkomma-Artefakte (`25.062000…1`) — `decimal` wäre exakt, für
+Aquarium-Temperaturen irrelevant. Der fehlgeschlagene Request wird dreifach geloggt (§32).
+Polly-Retry wurde bewusst zurückgestellt (§29.16).
 
-> **Erledigt seit 2026-07-12:** `ParseTemperature` ist mit xUnit getestet (§23Q.2); die
-> BaseUrl-Entscheidung ist getroffen — die Overlay-Datei bleibt (§23O.8).
+> **Nachgezogen am 2026-07-12:** `ParseTemperature` ist mit xUnit getestet (§23Q.2); die
+> BaseUrl-Entscheidung ist getroffen — die Overlay-Datei bleibt (§23O.8). Der zunächst
+> vertippte Konfigurationsschlüssel `MaxContinousSensorErrors` heißt inzwischen
+> `MaxContinuousSensorErrors`.
 
 ## 12. Git/GitHub-Setup
 
@@ -1882,10 +1870,10 @@ git push -u origin main
 e7d8169  Initial Commit
 ```
 
-Aktuell sind die Solution-Restrukturierung (AQMS_Web → AQMS.Web etc.) und
-die neue `AddDomainEntities`-Migration **noch nicht committet**. Nach
-diesem Doku-Update folgt ein größerer Commit, der diesen Refactor und
-die finale Persistenzschicht zusammenfasst.
+Die Solution-Restrukturierung (AQMS_Web → AQMS.Web etc.) und die
+`AddDomainEntities`-Migration wurden anschließend in einem gemeinsamen
+Commit zusammengefasst, der den Refactor und die Persistenzschicht
+abschließt.
 
 ---
 
@@ -1921,10 +1909,9 @@ die finale Persistenzschicht zusammenfasst.
 
 ## 14. Schema-Iteration: vom ersten Entwurf zum aktuellen Stand
 
-Diese Sektion ist wichtig für das Verständnis: das Schema ist **nicht in
-einem Wurf** entstanden, sondern in mehreren bewussten Iterationen, jede
-mit eigener Begründung. Die Diplomarbeit kann diese Evolution als
-Lernprozess dokumentieren.
+Das Schema ist **nicht in einem Wurf** entstanden, sondern in mehreren
+bewussten Iterationen, jede mit eigener Begründung. Dieser Abschnitt hält
+die Evolution mit den jeweils auslösenden Befunden fest.
 
 ### 14.1 Iteration 1 (KW 13): das initiale Modell
 
@@ -1978,10 +1965,10 @@ POST /api/measurements
 
 statt vorher `{ "deviceId": "raspi-aquarium", "temperatureC": 24.3, ... }`.
 
-### 14.4 Iteration 4 (KW 14, geplant): Volldokumentation und CHECK-Constraints
+### 14.4 Iteration 4 (KW 14): Volldokumentation und CHECK-Constraints
 
-Während der ausführlichen DB-Doku ([docs/db_schema/AQMS_Datenbankdokumentation.md](db_schema/AQMS_Datenbankdokumentation.md))
-wurde geplant:
+Während der ausführlichen Ausarbeitung des Datenbankentwurfs wurde
+vorgesehen:
 
 - `MeasurementType` mit `MinValue`, `MaxValue` für Plausibilitätsgrenzen
 - 5 fixe DeviceTypes nach Funktion (Filter, Licht, CO2-Anlage, Heizstab,
@@ -2106,8 +2093,8 @@ Nicht-Schlüssel-Attributen → BCNF erfüllt.
 - Aggregation über StateChanges wäre teuer
 - **CQRS-Idee**: Lese-Pfad eigener Datenstrom für Performance
 
-In der Diplomarbeit als bewusste Denormalisierung dokumentieren — das ist
-kein 3NF-Verstoß "by accident", sondern eine begründete Architekturentscheidung.
+Es handelt sich damit um eine bewusste Denormalisierung — kein
+3NF-Verstoß "by accident", sondern eine begründete Architekturentscheidung.
 
 ---
 
@@ -3198,9 +3185,8 @@ echte Fehler ist die Wurzel.
 > §23–§28 beschreiben die **frühere** Einrichtung auf dem ersten VPS
 > (Debian 12) und gelten als **historischer Stand** — sie bleiben erhalten,
 > weil die dort dokumentierten Praxisprobleme (systemd 217/USER §25,
-> Upload-Rechte §28) als Lernmaterial für die Diplomarbeit relevant sind
-> und in §23A–§23F teils referenziert werden. Für den aktuellen
-> Server-Stand gelten §23A–§23F.
+> Upload-Rechte §28) in §23A–§23F teils referenziert werden. Für den
+> aktuellen Server-Stand gelten §23A–§23F.
 
 ## 23A. VPS-Migration: Anlass und Entscheidung
 
@@ -3257,7 +3243,7 @@ SQL-Server-Festlegung wird so konsistent durchgehalten.
 
 > Diese Migration ist ein dokumentiertes Beispiel dafür, wie eine reale
 > Hardware-Beschränkung eine frühe Technologie-Annahme korrigiert. Die
-> verworfenen Optionen A und B sind in §30 als verworfene Alternativen
+> verworfenen Optionen A und B sind in §29 als verworfene Alternativen
 > festgehalten.
 
 ### 23A.3 Server-Vergleich alt/neu
@@ -3269,7 +3255,7 @@ SQL-Server-Festlegung wird so konsistent durchgehalten.
 | RAM | 1,9 GB | 8 GB |
 | Swap | 0 B | 0 B (nicht nötig) |
 | IP-Adresse | 203.0.113.11 | 203.0.113.10 |
-| Domain | aqms.aqms.example.com | aqms.aqms.example.com (neuer A-Record) |
+| Domain | aqms.example.com | aqms.example.com (neuer A-Record) |
 | Datenbank | keine (nur Test-App) | SQL Server 2022 in Docker |
 
 Die **Architektur x86-64** wurde bewusst beibehalten: Microsoft liefert
@@ -3285,7 +3271,7 @@ wird.
 
 ## 23B. DNS-Umstellung auf den neuen Server
 
-Die Subdomain `aqms.aqms.example.com` musste auf die neue Server-IP
+Die Subdomain `aqms.example.com` musste auf die neue Server-IP
 `203.0.113.10` zeigen. Die DNS-Verwaltung von `aqms.example.com` enthielt
 zwei bestehende A-Records:
 
@@ -3729,7 +3715,7 @@ Server-Block `/etc/nginx/sites-available/aqms`:
 ```nginx
 server {
     listen 80;
-    server_name aqms.aqms.example.com;
+    server_name aqms.example.com;
 
     location / {
         proxy_pass         http://localhost:5000;
@@ -3758,13 +3744,13 @@ Das Entfernen des `default`-Server-Blocks schaltet die Nginx-Willkommens-
 seite ab. `nginx -t` prüft die Syntax vor dem Reload.
 
 Verifikation: lokaler `curl` mit `Host`-Header und externer Aufruf von
-`http://aqms.aqms.example.com` lieferten beide HTTP `200` mit der AQMS-App.
+`http://aqms.example.com` lieferten beide HTTP `200` mit der AQMS-App.
 
 ## 23J. HTTPS mit Let's Encrypt
 
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d aqms.aqms.example.com
+sudo certbot --nginx -d aqms.example.com
 ```
 
 *Begründung:* Das `python3-certbot-nginx`-Plugin trägt den
@@ -3778,7 +3764,7 @@ Let's-Encrypt-Zertifikate sind 90 Tage gültig; Certbot installiert einen
 systemd-Timer, der rechtzeitig automatisch erneuert
 (`systemctl list-timers | grep certbot`).
 
-**Verifikation:** `https://aqms.aqms.example.com` ist im Browser mit
+**Verifikation:** `https://aqms.example.com` ist im Browser mit
 gültigem Zertifikat erreichbar, HTTP wird auf HTTPS umgeleitet. Damit ist
 der Backend-Stack auf dem neuen VPS vollständig:
 Debian 13 → Docker / SQL Server → AQMS.Web (systemd) → Nginx → HTTPS.
@@ -3803,7 +3789,7 @@ docker exec -it aqms-sqlserver /opt/mssql-tools18/bin/sqlcmd \
 Der `-I`-Schalter ist auch hier erforderlich (siehe Ergänzung in §22.7 —
 `-I` gilt für jeden schreibenden `sqlcmd`-Zugriff auf die `aqms`-DB).
 Nach der Bestätigung war der Login über
-`https://aqms.aqms.example.com/Identity/Account/Login` erfolgreich — die
+`https://aqms.example.com/Identity/Account/Login` erfolgreich — die
 Authentifizierungskette ist damit End-to-End verifiziert.
 
 ### 23K.2 Öffentliche Registrierung deaktivieren
@@ -3811,7 +3797,7 @@ Authentifizierungskette ist damit End-to-End verifiziert.
 **Entscheidung:** Die öffentliche Selbst-Registrierung wird vollständig
 deaktiviert.
 
-**Begründung:** Das Backend ist über `https://aqms.aqms.example.com`
+**Begründung:** Das Backend ist über `https://aqms.example.com`
 öffentlich erreichbar. Eine offene Registrierung würde es beliebigen
 Dritten erlauben, Benutzerkonten im System anzulegen — für ein
 Aquarium-Steuerungssystem mit Schaltbefehlen an reale 230V-Verbraucher
@@ -3848,7 +3834,7 @@ Die in §23K.1 beschriebene manuelle Bestätigung per
 ersten Login. Eine dauerhafte Lösung muss zwei Anforderungen erfüllen,
 die im Manuell-Ansatz fehlen: die Rollen `Admin` und `User` müssen im
 System existieren (für späteres `[Authorize(Roles = ...)]` an
-Controllern, §33.2, Phase 3), und der Admin-Benutzer muss inklusive Rollen-
+Controllern, Phase 3), und der Admin-Benutzer muss inklusive Rollen-
 zuweisung **reproduzierbar** und **idempotent** beim Anwendungsstart
 hergestellt werden — auf der lokalen Entwicklungsmaschine ebenso wie auf
 dem VPS, ohne manuelle Eingriffe.
@@ -4120,8 +4106,8 @@ lichen Zeichen ab; ein Angreifer könnte aus der gemessenen Antwortzeit
 zeichenweise auf den korrekten Schlüssel zurückschließen
 (*Timing-Attack*). `FixedTimeEquals` benötigt für jeden Vergleich dieselbe
 Zeit, unabhängig vom Inhalt. Für AQMS im LAN ist das Risiko praktisch
-gering, aber der korrekte Vergleich kostet eine einzige Zeile mehr und
-ist Diplomarbeit-relevantes Detail im Bereich „Security-Awareness".
+gering, aber der korrekte Vergleich kostet eine einzige Zeile mehr — es
+gibt keinen Grund, die schwächere Variante zu wählen.
 
 **Pipeline-Position möglichst früh (direkt nach `UseHttpsRedirection`).**
 Die Middleware ist eine eigene Authentifizierungsmethode, parallel zur
@@ -4213,7 +4199,7 @@ app.UseAuthorization();
 > `app.UseAuthentication();` in der Pipeline bisher fehlte —
 > `UseAuthorization` allein reicht nicht; ohne `UseAuthentication` ist das
 > `User`-Objekt bei nachgelagerten Anfragen leer, und spätere
-> `[Authorize]`-Attribute (§33.2, Phase 3) würden nicht greifen. Dass das
+> `[Authorize]`-Attribute (Phase 3) würden nicht greifen. Dass das
 > Identity-Login bisher dennoch funktionierte, lag an der Identity-UI, die
 > ihre eigenen Endpunkte intern bedient — das hätte sich aber spätestens
 > beim ersten geschützten Controller gerächt. Die Zeile ist mit aufgenommen.
@@ -4277,7 +4263,7 @@ Invoke-WebRequest -Uri "https://localhost:<port>/api/ping" `
 
 Mit dem VPS-Wert ist der `ApiKey` in **allen drei Umgebungen** gesetzt
 und folgt durchgängig dem §11.7-Prinzip „pro Umgebung anderer Wert".
-Der VPS-Wert wird später identisch beim Pi-Worker (Phase 2) hinterlegt,
+Derselbe VPS-Wert wurde anschließend beim Pi-Worker hinterlegt (§23O.5),
 sodass Worker und API über denselben Schlüssel kommunizieren.
 
 ### 23L.8 Praxisproblem: stiller systemd-Tippfehler beim ApiKey-Override
@@ -4288,7 +4274,7 @@ mit `401 Unauthorized` beantwortet — auch der POST und der GET mit
 korrekt gesetztem `X-API-Key`-Header. Der Negativ-Test (kein Header → 401)
 funktionierte erwartungsgemäß, d.h. die Middleware **lief grundsätzlich**.
 Der Service-Status war `active (running)`, keine Stack-Traces in
-`journalctl`, der Health-Check `GET https://aqms.aqms.example.com/` (HTML-
+`journalctl`, der Health-Check `GET https://aqms.example.com/` (HTML-
 Startseite) antwortete mit `200`.
 
 **Ursache.** Die systemd-Override-Datei
@@ -4391,7 +4377,7 @@ Operationen vor. Bei Messwerten ergibt das fachlich keinen Sinn:
 Messwerte sind unveränderliche historische Fakten. Update („wir
 korrigieren nachträglich die Temperatur") entwertet die Messreihe,
 Delete bricht historische Auswertungen. Daher **append-only-Modell** —
-nur POST (anlegen) und GET (lesen). Für `DeviceCommand` (§33.2, Phase 3,
+nur POST (anlegen) und GET (lesen). Für `DeviceCommand` (Phase 3,
 CommandsController) wird das anders aussehen, weil dort ein Update für
 Status-Übergänge (`Pending` → `Executed` / `Failed`) zwingend ist.
 
@@ -4437,7 +4423,7 @@ ASP.NET Core hat in `Program.cs` bereits `UseExceptionHandler("/Home/Error")`
 (Production) bzw. die Developer-Exception-Page (Development) als
 zentrale Fehler-Anlaufstelle. Ein try/catch in den Action-Methoden um
 `SaveChangesAsync` würde diese Schicht duplizieren, ohne Mehrwert (es sei
-denn, es wird gezielt geloggt — kommt mit dem Service-Layer in §33.2 Phase 3).
+denn, es wird gezielt geloggt — kommt mit dem Service-Layer in Phase 3).
 Daher: Exceptions fliegen hoch, globaler Handler übernimmt.
 
 **400 Bad Request für unbekannte fachliche Identifier.**
@@ -4558,8 +4544,7 @@ Strukturmerkmale:
   fertig konfigurierte `ActionResult`-Objekte erzeugen.
 - **`[FromBody]` explizit angegeben:** Bei `[ApiController]` würde ASP.NET
   Core den DTO-Parameter auch ohne Attribut korrekt aus dem Body lesen.
-  Die explizite Angabe ist Diplomarbeit-konform — sichtbar, woher der
-  Parameter kommt.
+  Die explizite Angabe macht sichtbar, woher der Parameter kommt.
 - **LINQ-Kette mit Projektion:** Der `.Select(...)`-Bauklotz übersetzt
   EF Core in ein effizientes SQL `SELECT m.Timestamp, m.Value, mt.Unit`
   mit JOIN auf `MeasurementTypes` — nur die drei nötigen Spalten werden
@@ -4631,7 +4616,7 @@ Test-Szenarien gegen die Production-URL ausgeführt:
 Aufruf für Test 2 und 3 (mit Production-URL und VPS-Key):
 
 ```powershell
-$base = "https://aqms.aqms.example.com"
+$base = "https://aqms.example.com"
 $key  = "<VPS-Key>"
 
 $body = @{
@@ -4652,7 +4637,7 @@ Invoke-WebRequest -Uri "$base/api/measurements?deviceIdentifier=raspberry-pi&typ
 **Was damit bewiesen ist.** Die Response-Header zeigten `Server: nginx`
 (statt `Server: Kestrel` wie lokal). Das beweist, dass die Anfragen den
 **vollständigen Production-Stack** durchlaufen haben: DNS-Auflösung
-`aqms.aqms.example.com` → Nginx (HTTPS-Terminierung, Reverse-Proxy) → Kestrel
+`aqms.example.com` → Nginx (HTTPS-Terminierung, Reverse-Proxy) → Kestrel
 (ASP.NET-Core-Hostprozess) → `ApiKeyMiddleware` → `MeasurementsController`
 → EF Core → SQL Server in Docker → Response. Sechs Komponenten in Reihe,
 alle korrekt verkabelt und produktiv erreichbar. Mit der lokalen
@@ -4702,9 +4687,9 @@ SQL-Abfrage (nur drei Spalten mit JOIN auf `MeasurementTypes`).
    „in der Middleware" auftritt, kann die Ursache in jeder Komponente
    *nach* dieser Middleware liegen. Die Middleware ist nur der Aufrufer
    des `_next`-Delegates.
-3. Diplomarbeit-Argumentation: Diese Erkenntnis wurde **selbst durchlebt**,
-   nicht theoretisch übernommen. Genau das macht das DTO-Konzept hier
-   verteidigungsfähig.
+3. Das DTO-Konzept wurde hier nicht theoretisch übernommen, sondern durch
+   einen konkreten Laufzeitfehler erzwungen — das ist der belastbarere
+   Grund für seinen Einsatz.
 
 ### 23M.7 Bekannte offene Punkte
 
@@ -4721,10 +4706,10 @@ SQL-Abfrage (nur drei Spalten mit JOIN auf `MeasurementTypes`).
   blockierend.
 - **Keine fachliche Wertvalidierung.** `dto.Value` wird ohne Plausibilitäts-
   prüfung gespeichert (negative Temperatur am Strom-Sensor wird akzeptiert).
-  Gehört in den Service-Layer (§33.2, Phase 3).
+  Gehört in den Service-Layer (Phase 3).
 - **Keine Authentifizierung auf User-Ebene.** API-Key-Middleware reicht
   für Maschine-zu-Maschine; sobald die GET-Endpoints auch vom Browser
-  konsumiert werden, kommt `[Authorize(Roles = ...)]` dazu (§33.2, Phase 3).
+  konsumiert werden, kommt `[Authorize(Roles = ...)]` dazu (Phase 3).
 
 ---
 
@@ -4745,7 +4730,7 @@ im Gegensatz zum append-only-MeasurementsController (§23M).
   `CommandService` (`AQMS.Web/Services/`), nicht im Controller. Ein
   `ICommandService`-Interface mit genau einem Implementierer wurde bewusst
   *nicht* angelegt — dieselbe leere Abstraktion wie beim verworfenen
-  Repository-Pattern (§30.12), siehe §30.13. Der Service ist bereits die
+  Repository-Pattern (§29.12), siehe §29.13. Der Service ist bereits die
   Abstraktion über dem DbContext und ohne Interface testbar (EF-Core-InMemory
   bzw. SQLite gegen die echte LINQ-Logik statt Mock).
 - **Service bleibt HTTP-frei.** Er gibt ein Domänen-Enum `CommandResult`
@@ -4920,7 +4905,7 @@ mit (gleiche Endpoint-Datenquelle), wie schon beim MeasurementsController
 ### 23N.5 Verifikation
 
 Beide Endpunkte wurden mit denselben vier Szenarien geprüft — **lokal
-(`localhost`) und auf dem VPS (`https://aqms.aqms.example.com`), beide am
+(`localhost`) und auf dem VPS (`https://aqms.example.com`), beide am
 2026-06-04**:
 
 | Szenario | Erwartet | Lokal | VPS |
@@ -4948,7 +4933,7 @@ Fehler) — daher werden die Fehlerfälle per `try/catch` über den Statuscode
 abgefangen. Setup:
 
 ```powershell
-$base    = "https://aqms.aqms.example.com"
+$base    = "https://aqms.example.com"
 $headers = @{ "X-API-Key" = "<VPS_APIKEY>" }
 ```
 
@@ -5046,7 +5031,7 @@ Zielgerät + IP angereichert:
   Property-Namen, sonst bindet `ReadFromJsonAsync` still nicht. „Eine Wahrheit" für
   die IP bleibt die DB; sie reitet pro Befehl mit, statt über einen zweiten Endpunkt.
 
-Verworfene Alternativen: §30.14.
+Verworfene Alternativen: §29.14.
 
 **Konkrete Änderungen.** DTO Web+Worker je +2 Properties; `GetPendingCommands()`
 parameterlos, Rückgabe `List<CommandPendingDto>` (nicht mehr nullable, da kein
@@ -5107,7 +5092,7 @@ dotnet publish AQMS.Worker -c Release -r linux-arm64 --self-contained true -o C:
 
 *Begründung self-contained* (statt Framework-Dependent wie am VPS §23G.1): Auf dem Pi ist
 **keine** .NET-Runtime installiert; self-contained packt sie mit ein — kein Runtime-Install,
-keine Versions-Drift (verworfene Alternative §30.15). Kein `-p:PublishTrimmed`: Trimming
+keine Versions-Drift (verworfene Alternative §29.15). Kein `-p:PublishTrimmed`: Trimming
 kann reflektionsbasiertes Config-Binding still wegschneiden; ~80 MB sind auf der SD-Karte
 irrelevant. `linux-arm64`, weil `uname -m` = `aarch64`.
 
@@ -5118,31 +5103,31 @@ irrelevant. `linux-arm64`, weil `uname -m` = `aarch64`.
 ```json
 {
   "AqmsApi": {
-    "BaseUrl": "https://aqms.aqms.example.com"
+    "BaseUrl": "https://aqms.example.com"
   }
 }
 ```
 
 *Begründung:* Die BaseUrl ist „pro Umgebung" (§11.6). Statt die appsettings.json auf
-VPS-URL zu editieren (würde auch Dev auf den VPS zeigen — verworfen §30.15), überschreibt
+VPS-URL zu editieren (würde auch Dev auf den VPS zeigen — verworfen §29.15), überschreibt
 das Overlay nur in Produktion. Greift nur bei `DOTNET_ENVIRONMENT=Production` (§23O.4).
 
 ### 23O.3 Transfer auf den Pi
 
 ```powershell
-ssh kev@10.0.0.222 "rm -rf ~/deploy-worker && mkdir -p ~/deploy-worker"
-scp -r C:\temp\publish-worker\* kev@10.0.0.222:/home/kev/deploy-worker/
+ssh piuser@10.0.0.222 "rm -rf ~/deploy-worker && mkdir -p ~/deploy-worker"
+scp -r C:\temp\publish-worker\* piuser@10.0.0.222:/home/piuser/deploy-worker/
 ```
 
 ```bash
 sudo mkdir -p /opt/aqms-worker
 sudo rm -rf /opt/aqms-worker/*
-sudo cp -r /home/kev/deploy-worker/* /opt/aqms-worker/
+sudo cp -r /home/piuser/deploy-worker/* /opt/aqms-worker/
 sudo chmod +x /opt/aqms-worker/AQMS.Worker
 ```
 
 *Begründung Zwei-Schritt (Home → `/opt` per sudo):* dasselbe Upload-Rechte-Muster wie am
-VPS (§28) — nach `chown aqms` kann `kev` nicht mehr direkt schreiben. `chmod +x` ist
+VPS (§28) — nach `chown aqms` kann `piuser` nicht mehr direkt schreiben. `chmod +x` ist
 Pflicht: self-contained erzeugt eine **native** Executable, von Windows kopierte Dateien
 tragen kein Ausführungs-Bit (sonst `Permission denied` beim Start).
 
@@ -5240,7 +5225,7 @@ volle Kette lief vom Pi aus.
 
 Die Produktions-BaseUrl liegt in `appsettings.Production.json` (§23O.2). Diese Datei-Variante
 hatte sich im Deployment **zweimal** als fragil erwiesen (§23O.7 Punkt 1 + 4). Alternative wäre
-gewesen, die BaseUrl als `Environment=AqmsApi__BaseUrl=https://aqms.aqms.example.com` in die
+gewesen, die BaseUrl als `Environment=AqmsApi__BaseUrl=https://aqms.example.com` in die
 systemd-Override zu ziehen — kein Dateiname zum Vertippen, kein „Copy-to-output"-Risiko.
 
 **Abwägung:**
@@ -5270,7 +5255,7 @@ Datenpunkt, nicht zwei. Die Versuchung, aus einer schmerzhaften Erfahrung eine
 Architekturänderung abzuleiten, muss gegen die Frage geprüft werden, ob die Ursache noch
 existiert.
 
-Damit ist dieser Punkt **geschlossen** und aus §33.1 entfernt.
+Damit ist dieser Punkt **geschlossen**.
 
 ---
 
@@ -5294,7 +5279,7 @@ Nach Abschluss von Phase 2 (§11.10) beherrschte das System jede Teilkette auße
 | **Mensch → VPS: Befehl *erzeugen*** | **fehlt** |
 | **Mensch → VPS: Daten *ansehen*** | **fehlt** |
 
-Die letzten beiden Zeilen sind zugleich die beiden offenen Punkte aus §33.2 (Autorisierung,
+Die letzten beiden Zeilen sind zugleich die beiden zuletzt offenen Punkte der Phase 3 (Autorisierung,
 Befehls-Erstellung) und der Kern von Phase 4. Sie wurden daher in einem Zug umgesetzt.
 
 ### 23P.2 Architekturentscheidung: zwei Zugangswege, zwei Auth-Mechanismen
@@ -5450,7 +5435,7 @@ Zugriff in der View würde entweder Nachlade-Queries auslösen oder auf nicht ge
 laufen. Das ViewModel enthält exakt die Felder, die gerendert werden — nicht mehr.
 
 **Zeitzonen-Behandlung.** Die Chart-Beschriftungen werden **serverseitig** von UTC nach
-`Europe/Vienna` umgerechnet und als fertige `HH:mm`-Strings übergeben. Das umgeht den in §32.2
+`Europe/Vienna` umgerechnet und als fertige `HH:mm`-Strings übergeben. Das umgeht den in §31.2
 notierten Bug, dass der `Z`-Marker im JSON-Output verloren geht — der Browser bekommt gar keinen
 Zeitstempel mehr zu interpretieren.
 
@@ -5479,7 +5464,7 @@ await _db.SaveChangesAsync();
 sich nie von selbst, der Worker spricht sie nur beim Schalten an. Ein „online"-Badge für sie wäre
 eine Lüge. Das Dashboard zeigt für Shellys daher ehrlich **„zuletzt geschaltet"** statt eines
 Online-Status. Ein echter Health-Check (Worker pingt die Shellys zyklisch) wäre möglich, wurde
-aber aus Scope-Gründen verworfen (§30.16).
+aber aus Scope-Gründen verworfen (§29.16).
 
 *Lesson Learned.* Ein Feld, das an genau **einer** Stelle geschrieben wird, ist nur so
 aussagekräftig wie diese eine Stelle. `LastSeen` hieß semantisch „zuletzt gesehen", war
@@ -5494,7 +5479,7 @@ Migration nötig** — es wurde kein Entity geändert (`DashboardViewModel` ist 
 
 **Verifizierte Kette (end-to-end, gegen reale Hardware):**
 
-1. Aufruf von `https://aqms.aqms.example.com/` ohne Login → `302` auf die Login-Seite
+1. Aufruf von `https://aqms.example.com/` ohne Login → `302` auf die Login-Seite
    (`[Authorize]` greift).
 2. Login als Admin → Dashboard rendert; Temperatur-Kachel und Chart.js-Verlauf sind mit realen
    DS18B20-Werten gefüllt.
@@ -5516,7 +5501,7 @@ zur Beweissicherung **gefilmt**.
 **Ursprüngliche Position.** Zwischen Klick und Schaltung liegt bis zu ein Poll-Intervall. Das
 Dashboard zeigte in dieser Zeit „Befehl wird ausgeführt …" und aktualisierte sich **nicht** von
 selbst — bewusst, mit der Begründung: Die Latenz ist eine unvermeidliche Konsequenz des
-Polling-Patterns (§30.14, der Pi sitzt hinter NAT), und sie sollte *sichtbar gemacht statt
+Polling-Patterns (§29.14, der Pi sitzt hinter NAT), und sie sollte *sichtbar gemacht statt
 kaschiert* werden.
 
 **Anlass der Revision.** Beim Testen starrte der Entwickler selbst mehrere Minuten auf eine
@@ -5549,7 +5534,7 @@ Zusätzlich ein Bootstrap-Spinner am „Befehl wird ausgeführt …"-Label, dami
 |---|---|
 | `<meta http-equiv="refresh">` im Layout | lädt **immer** neu, auch im Ruhezustand — reißt jede Interaktion weg, erzeugt Dauerlast |
 | Permanentes `setInterval`-Polling gegen einen JSON-Endpunkt | zusätzlicher Endpunkt, zusätzliche Auth-Frage, dauerhafte Last — für ein Ereignis, das pro Klick genau einmal eintritt |
-| SignalR | löst das Problem **nicht**: der Pi pollt weiterhin (NAT), die Latenz bliebe. Nur die Architektur würde komplexer (§30.16) |
+| SignalR | löst das Problem **nicht**: der Pi pollt weiterhin (NAT), die Latenz bliebe. Nur die Architektur würde komplexer (§29.16) |
 
 **Die entscheidende Eigenschaft: Selbstterminierung.** Sobald der Worker `POST /result` gemeldet
 hat, ist der Status `Executed`, `HasPendingCommand` wird `false` — und das `@if` rendert das
@@ -5557,11 +5542,14 @@ Skript nicht mehr. Die Schleife endet **von allein**. Kein Abbruchkriterium, kei
 Aufräum-Code. Im Ruhezustand enthält die Seite kein einziges Timer-Skript.
 
 **Bekannter Randfall (bewusst getragen).** Ist der Pi offline, meldet der Worker nie — die Seite
-lädt dann alle 3 Sekunden endlos neu. Bei laufendem Pi und 30-Sekunden-Poll-Takt unkritisch, aber
+lädt dann alle 3 Sekunden endlos neu. Bei laufendem Pi und 10-Sekunden-Poll-Takt unkritisch, aber
 real. Eine Absicherung (z. B. Reload nur, wenn der Befehl jünger als 5 Minuten ist) wäre möglich
-und ist als offener Punkt geführt (§33.3).
+und ist als Ausblick geführt (§32).
 
-**Status:** implementiert; **VPS-Verifikation steht aus** (Stand dieser Eintragung).
+**Status:** implementiert. Der Mechanismus lief anschließend im
+Schaltdurchlauf am Produktivsystem mit (§23S.7, 2026-08-06) — dort wurde je
+Gerät der neue Zustand über das Dashboard abgewartet. Ein eigener
+Protokolleintrag zur Reload-Logik wurde dabei nicht angelegt.
 
 **Lesson Learned (methodisch).** „Das Verhalten ist eine ehrliche Abbildung des Systemzustands"
 ist eine *Entwickler*-Perspektive. Sie rechtfertigt keine Oberfläche, die für den Benutzer wie ein
@@ -5590,7 +5578,7 @@ Service-Tests wird `Microsoft.EntityFrameworkCore.InMemory` verwendet.
 - Eine echte SQL-Server-Testinstanz (Testcontainers) wäre die realistischste Variante, kostet aber
   Laufzeit und Infrastruktur — für den Umfang dieser Arbeit unverhältnismäßig.
 
-**Ehrliche Abgrenzung (gehört ins Manuskript):** Die Tests beweisen, dass der `CommandService`
+**Ehrliche Abgrenzung.** Die Tests beweisen, dass der `CommandService`
 korrekt entscheidet. Sie beweisen **nicht**, dass Fremdschlüssel-Constraints, `CHECK`-Bedingungen
 oder Unique-Indizes greifen — der InMemory-Provider erzwingt sie nicht. Diese Ebene wird durch
 die Produktionsverifikation (§23M.7, §23N.5, §23P.7) abgedeckt, nicht durch Unit-Tests.
@@ -5644,7 +5632,7 @@ Die beiden fett hervorzuhebenden Tests sind die **Negativ-Tests**: „kein Eintr
 Passed! - Failed: 0, Passed: 16, Skipped: 0, Total: 16, Duration: 800 ms
 ```
 
-Offen bleibt (§33.4): Tests für den `Worker` selbst (HTTP-Client mit Fake-Handler), Integrations-
+Offen bleibt (§32.1): Tests für den `Worker` selbst (HTTP-Client mit Fake-Handler), Integrations-
 und Lasttests, 24-h-Dauerlauf.
 
 ---
@@ -5723,7 +5711,7 @@ private static readonly TimeSpan PiOnlineFenster = TimeSpan.FromMinutes(5);
 ```
 
 Sauberer wäre ein Konfigurationswert auf Web-Seite; für die Restlaufzeit ist der explizite
-Kommentar der pragmatische Kompromiss und wird als solcher im Manuskript benannt.
+Kommentar der pragmatische Kompromiss und wird hier als solcher benannt.
 
 *Lessons Learned.*
 1. **Ein hartkodierter Zeit-Schwellwert ist eine versteckte Abhängigkeit zu einem anderen
@@ -5734,7 +5722,7 @@ Kommentar der pragmatische Kompromiss und wird als solcher im Manuskript benannt
    erfolgt, wäre der Fehler in der Vorführung aufgetreten.
 
 *Status:* **latent** — nicht aktiv bei der aktuellen Konfiguration, wird aktiv bei jeder Erhöhung
-des Messintervalls. Als bedingter Defekt geführt (§33.3).
+des Messintervalls. Als bedingter Defekt geführt (§32.2).
 
 ### 23R.3 Testprotokoll: 24-Stunden-Dauerlauf (Phase 5)
 
@@ -5759,7 +5747,7 @@ Auswertung:
 
 ```bash
 sudo docker exec -i aqms-sqlserver /opt/mssql-tools18/bin/sqlcmd \
-  -C -I -S localhost -U sa -P '<PASSWORD>' -d AQMS \
+  -C -I -S localhost -U sa -P '<PASSWORD>' -d aqms \
   -Q "SELECT COUNT(*) AS Anzahl, MIN(Timestamp) AS Von, MAX(Timestamp) AS Bis, \
       MIN(Value) AS MinC, MAX(Value) AS MaxC, AVG(Value) AS SchnittC \
       FROM Measurements WHERE Timestamp > DATEADD(hour,-24,GETUTCDATE())"
@@ -5775,7 +5763,10 @@ und einen HTTPS-`POST` an den VPS über den öffentlichen Internet-Pfad (Pi → 
 Kestrel → SQL Server). **Keine einzige Fehlmessung, kein einziger fehlgeschlagener POST, kein
 Reconnect.** Damit sind belegt:
 
-- Stabilität der `PeriodicTimer`-Schleife über 24 h (kein Drift, kein Verhungern)
+- Stabilität der `Task.Delay`-Schleife über 24 h (kein Verhungern, kein Aussetzer). Der
+  gemessene Abstand von ~20,9 s statt exakt 20 s ist die erwartete Folge dieser Bauart:
+  die Wartezeit beginnt **nach** der Arbeit eines Durchlaufs, die Bearbeitungsdauer
+  addiert sich also auf. Für eine Zeitreihe dieser Art ohne Belang.
 - Zuverlässigkeit der 1-Wire-Lesung und der CRC-Prüfung (§11.10)
 - Robustheit des `IHttpClientFactory`-Clients über 4.136 Anfragen (kein Socket-Exhaustion,
   kein DNS-Problem — das war die Sorge, die zur Verwendung des benannten Clients führte, §11.6)
@@ -5815,9 +5806,27 @@ Entwicklung erbrachten Nachweise stehen in §23L.7 (API-Key), §23M.5
 ### 23S.1 Testschema und methodische Regeln
 
 Alle Protokolle folgen einem festen Schema: Test-ID, Bezeichnung, Datum,
-Umgebung, Vorgehen, Erwartung, Ergebnis, Bewertung, Beleg. Es liegt als eigene
-Datei `AQMS_Testprotokolle.md` vor und speist Anhang D des Manuskripts sowie die
-Ergebnisspalten der Tabellen 16 und 17 in Kapitel 9.
+Umgebung, Vorgehen, Erwartung, Ergebnis, Bewertung, Beleg. Die
+zusammengefassten Ergebnisse stehen in den folgenden Abschnitten §23S.3
+bis §23S.8.
+
+**Nachvollziehbarkeit der Datenbank-Belege.** Sämtliche auswertenden Abfragen
+sind in [AQMS_Testabfragen.sql](AQMS_Testabfragen.sql) gesammelt. Sie sind so
+gehalten, dass jede einzelne unverändert in den `-Q`-Parameter kopiert und
+damit direkt am Server ausgeführt werden kann — der Beleg lässt sich also
+jederzeit reproduzieren, statt nur zitiert zu werden:
+
+```bash
+docker exec -it aqms-sqlserver /opt/mssql-tools18/bin/sqlcmd \
+  -S localhost -U sa -P '<PASSWORD>' -C -I -d aqms -W -s"|" \
+  -Q "SELECT (SELECT COUNT(*) FROM DeviceTypes) AS [Gerätetypen], (SELECT COUNT(*) FROM MeasurementTypes) AS [Messgrößen], (SELECT COUNT(*) FROM Devices) AS [Geräte];"
+```
+
+`-C` vertraut dem selbstsignierten Zertifikat des Containers, `-I` schaltet
+`QUOTED_IDENTIFIER` ein (vom EF-Core-Schema vorausgesetzt, §22.7), `-W` und
+`-s"|"` erzeugen eine spaltenweise lesbare Ausgabe, die sich unverändert als
+Beleg übernehmen lässt. In der Datei stehen die Abfragen mehrzeilig; für den
+Aufruf werden sie in eine Zeile gesetzt, inhaltlich ändert das nichts.
 
 Drei Regeln prägen den Aufbau; die erste ist die direkte Konsequenz aus der
 Lesson Learned in §23R.3:
@@ -5955,11 +5964,11 @@ unmittelbar davor abgesetzte Kontrollaufruf lieferte 200.
 Aufruf an `/api/...` ging. Ein Client, der JSON erwartet, erhält im Fehlerfall
 eine vollständige Webseite. Der Worker übersteht das wegen seiner
 Exception-Behandlung (§11.6), es steht aber quer zum Statuscode-Vertrag aus
-§23M.2. Aufgenommen in §33.
+§23M.2. Aufgenommen in §32.
 
 ### 23S.6 Transportverschlüsselung (PSP 5.2.1)
 
-Qualys SSL Labs gegen `aqms.aqms.example.com`, 2026-08-06 09:27 UTC:
+Qualys SSL Labs gegen `aqms.example.com`, 2026-08-06 09:27 UTC:
 
 | Kriterium | Ergebnis |
 |---|---|
@@ -5995,7 +6004,8 @@ hörbares Relais-Klicken an jedem Gerät.
 |---|---|---|---|
 | 9 | 5 s | 9 s | 6,9 s |
 
-§3.7 des Manuskripts leitet rechnerisch 5 s im Mittel und 10 s maximal her. Der
+Die rechnerische Herleitung aus Poll-Intervall und Verarbeitungsdauer ergibt 5 s
+im Mittel und 10 s maximal. Der
 gemessene Höchstwert liegt innerhalb dieser Grenze, das Mittel darüber. **Kein
 Widerspruch, sondern eine andere Messgröße:** die Herleitung beschreibt allein
 die Wartezeit bis zum *Abholen*, die Messung reicht bis zum *Verbuchen* und
@@ -6029,7 +6039,7 @@ jeweils 400).
 **Werkzeug-Abweichung.** Der PSP nennt „Postman-Collection oder xUnit
 Integrationstests". Ausgeführt wurde mit `Invoke-WebRequest` und `curl`. Geprüft
 wurde derselbe Gegenstand auf demselben Weg über HTTP; die Abweichung betrifft
-allein das Werkzeug und ist im Manuskript offenzulegen.
+allein das Werkzeug und ist als Abweichung festgehalten.
 
 ### 23S.9 Praxisprobleme
 
@@ -6087,7 +6097,7 @@ Regel 2 aus §23S.1 da.
    unveränderte Tabellenzahl belegt nur, dass diesmal nichts passiert ist.
 4. **Prüfungen fördern Belege für Aussagen zutage, die vorher nur behauptet
    waren.** Der Schaltdurchlauf lieferte die erste Messung zur hergeleiteten
-   Schaltlatenz (§3.7 des Manuskripts), der Migrationstest den ersten Nachweis
+   Schaltlatenz, der Migrationstest den ersten Nachweis
    der reproduzierbaren Einrichtung, das SQL-Protokoll den Beleg, dass die
    Fluent-API-Längen bis in den Treiber wirken.
 
@@ -6096,7 +6106,7 @@ Regel 2 aus §23S.1 da.
 ## 23T. Web-Frontend: Login-View, Rechtsseiten und lokale Ausliefervorgaben
 
 **Stand: 2026-08-19.** Diese Sektion schließt drei Lücken im Web-Frontend, die für
-den öffentlichen Betrieb unter `aqms.aqms.example.com` Voraussetzung sind: die
+den öffentlichen Betrieb unter `aqms.example.com` Voraussetzung sind: die
 gestaltete Anmeldeseite (Issue #38), die in Österreich vorgeschriebenen Seiten
 Impressum und Datenschutzerklärung, sowie die Beseitigung einer externen
 Abhängigkeit, die der Datenschutzerklärung widersprochen hätte.
@@ -6272,17 +6282,21 @@ Geprüft am lokal gestarteten Kestrel vor dem Deployment:
 | Suche nach externen URLs in allen Views | nur Textlinks auf `ris.bka.gv.at` und `dsb.gv.at` |
 | Build und Unit-Tests | 0 Warnungen, 16/16 grün |
 
-### 23T.7 Offene Punkte
+### 23T.7 Datenschutz-Nachweise
 
-1. **Aufbewahrungsfrist der Nginx-Logs bestätigen.** Die Datenschutzerklärung nennt
-   14 Tage, abgeleitet aus der Debian-Voreinstellung von logrotate. Zu prüfen gegen
-   `/etc/logrotate.d/nginx` auf dem VPS; weicht der Wert ab, ist der Text anzupassen.
-2. **Auftragsverarbeitungsvertrag mit netcup.** Der Vertrag ist im Customer Control
-   Panel abzuschließen und das PDF als Nachweis nach Art. 28 Abs 9 DSGVO abzulegen.
-3. **Keine Löschfrist für `DeviceCommands` und `StateChanges`.** Es existiert kein
-   Aufräum-Job; die Erklärung führt daher ehrlich „für die Dauer des Betriebs der
-   Anlage" statt einer Frist, die das System nicht einhält. Der Index auf `Timestamp`
-   (§21) wäre die Grundlage für einen späteren Löschlauf.
+1. **Aufbewahrungsfrist der Nginx-Logs bestätigt.** Die Datenschutzerklärung nennt
+   14 Tage. Der Wert wurde gegen `/etc/logrotate.d/nginx` auf dem VPS geprüft und
+   stimmt mit der dort konfigurierten Rotation überein; eine Textanpassung war
+   nicht erforderlich.
+2. **Auftragsverarbeitungsvertrag mit netcup abgeschlossen.** Der Vertrag wurde
+   über das Customer Control Panel geschlossen, das PDF liegt als Nachweis nach
+   Art. 28 Abs 9 DSGVO ab.
+3. **Bewusst keine Löschfrist für `DeviceCommands` und `StateChanges`.** Ein
+   Aufräum-Job existiert nicht, und die Erklärung sagt entsprechend „für die Dauer
+   des Betriebs der Anlage" zu — statt einer Frist, die das System nicht einhalten
+   würde. Die Zusage und das Systemverhalten stimmen damit überein. Der Index auf
+   `Timestamp` (§21) wäre die Grundlage für einen späteren Löschlauf; die
+   Entscheidung dagegen ist in §29.17 begründet.
 
 ### 23T.8 Lessons Learned
 
@@ -6326,7 +6340,7 @@ Subdomain hosten, ohne bestehende Dienste zu stören.
 nslookup aqms.example.com
 ```
 
-Bestätigt IP `203.0.113.11`. Subdomains (`aqms.aqms.example.com`) per
+Bestätigt IP `203.0.113.11`. Subdomains (`aqms.example.com`) per
 Wildcard-A-Record auf gleiche IP geroutet.
 
 ### 23.3 SSH-Verbindung
@@ -6534,16 +6548,16 @@ sudo systemctl status aqms-web
 Status: `Active: active (running)`. Anwendung lauscht auf
 `http://0.0.0.0:5000` — auf allen Netzwerk-Interfaces.
 
-### 25.6 Lerneffekt für die Diplomarbeit
+### 25.6 Lessons Learned
 
-> *Der erste systemd-Versuch scheiterte mit `status=217/USER`. Das war
-> kein Problem der Anwendung selbst — der manuelle Test mit
-> `dotnet TestApplication.dll` lief problemlos durch. Die Ursache lag
-> ausschließlich in der Dienstkonfiguration: der konfigurierte User
-> existierte nicht. Die Lösung bestand im Anlegen eines dedizierten
-> System-Users `aqms` ohne Login-Shell. Diese Trennung folgt dem Prinzip
-> der minimalen Privilegien — die Webanwendung läuft unter einem User
-> ohne Login-Möglichkeit, das reduziert die Angriffsfläche.*
+Der erste systemd-Versuch scheiterte mit `status=217/USER`. Das war kein
+Problem der Anwendung selbst — der manuelle Test mit
+`dotnet TestApplication.dll` lief problemlos durch. Die Ursache lag
+ausschließlich in der Dienstkonfiguration: der konfigurierte User
+existierte nicht. Die Lösung bestand im Anlegen eines dedizierten
+System-Users `aqms` ohne Login-Shell. Diese Trennung folgt dem Prinzip
+der minimalen Privilegien — die Webanwendung läuft unter einem User ohne
+Login-Möglichkeit, das reduziert die Angriffsfläche.
 
 ---
 
@@ -6584,13 +6598,13 @@ bestehende Konfigs eingebaut zu werden. Vorteile:
 - saubere Grundlage für TLS-Zertifikat
 - geringes Risiko für Kollisionen
 
-### 26.3 Subdomain `aqms.aqms.example.com`
+### 26.3 Subdomain `aqms.example.com`
 
 DNS war bereits vorhanden (Wildcard auf VPS-IP). Nginx-Site angelegt:
 
 ```bash
-sudo nano /etc/nginx/sites-available/aqms.aqms.example.com
-sudo ln -s /etc/nginx/sites-available/aqms.aqms.example.com /etc/nginx/sites-enabled/aqms.aqms.example.com
+sudo nano /etc/nginx/sites-available/aqms.example.com
+sudo ln -s /etc/nginx/sites-available/aqms.example.com /etc/nginx/sites-enabled/aqms.example.com
 sudo nginx -t        # Syntax-Check
 sudo systemctl reload nginx
 ```
@@ -6600,7 +6614,7 @@ sudo systemctl reload nginx
 ```nginx
 server {
     listen 80;
-    server_name aqms.aqms.example.com;
+    server_name aqms.example.com;
 
     location / {
         proxy_pass http://127.0.0.1:5000;
@@ -6637,7 +6651,7 @@ HTTP intern — Nginx kümmert sich um TLS.
 Mit Certbot (war bereits installiert):
 
 ```bash
-sudo certbot --nginx -d aqms.aqms.example.com
+sudo certbot --nginx -d aqms.example.com
 ```
 
 Certbot:
@@ -6651,7 +6665,7 @@ Bestätigung:
 
 - Zertifikat erfolgreich erhalten
 - Zertifikat in Nginx eingebunden
-- HTTPS aktiviert für `https://aqms.aqms.example.com`
+- HTTPS aktiviert für `https://aqms.example.com`
 - Gültig bis **20.06.2026**
 
 ### 27.2 Auto-Renewal
@@ -6672,7 +6686,7 @@ Vollständige HTTPS-Hosting-Kette:
 
 ```
 Internet
-   │  https://aqms.aqms.example.com (TLS, Port 443)
+   │  https://aqms.example.com (TLS, Port 443)
    ▼
 Nginx (Reverse Proxy + TLS-Terminator)
    │  http://127.0.0.1:5000 (intern, plaintext)
@@ -6729,132 +6743,20 @@ In einem sicherheitskritischen Produktionssystem wäre die saubere Lösung:
 - Upload nur über CI/CD-User mit eingeschränkten Rechten
 - `aqms` bleibt strikter Owner
 
-Für AQMS als Diplomarbeitsprojekt mit manuellem Workflow ist die `755`-
-Lösung mit Owner `deployuser` akzeptabel und pragmatisch.
+Für AQMS mit seinem manuellen Deployment-Workflow ist die `755`-Lösung mit
+Owner `deployuser` akzeptabel und pragmatisch.
 
 ---
 
-# Teil F — Diplomarbeit-Material
+# Teil F — Entwurfsreflexion
 
-## 29. Argumentationen für die Verteidigung
+## 29. Reflexion: Verworfene Alternativen
 
-Vorgefertigte Antworten auf typische Fragen:
+Dieser Abschnitt sammelt die Entwurfsalternativen, die im Projektverlauf
+geprüft und **bewusst verworfen** oder umgestellt wurden, jeweils mit der
+Begründung zum Zeitpunkt der Entscheidung.
 
-### 29.1 Zur Code-First-Entscheidung
-
-> *Die Datenbank wurde nach dem Code-First-Ansatz von Entity Framework Core
-> modelliert. Die C#-Entitätsklassen sind die maßgebliche Beschreibung des
-> Schemas; aus ihnen werden mit dem EF-Core-Tooling versionierte
-> Migrationsskripte generiert. Vorteile: Schema-Änderungen sind im
-> Source-Control versioniert, reproduzierbar auf jedem System, und die
-> Konsistenz zwischen Anwendungs- und Datenmodell ist durch den Compiler
-> garantiert.*
-
-### 29.2 Zur Vererbung von IdentityDbContext
-
-> *Die DbContext-Klasse erbt von IdentityDbContext mit dem Generic-Parameter
-> IdentityUser. Damit werden die sieben ASP.NET-Identity-Tabellen automatisch
-> in das Schema integriert, und die Authentifizierungslogik nutzt dieselbe
-> Datenbank-Verbindung wie die fachlichen Entitäten.*
-
-### 29.3 Zu Fluent API über Annotations
-
-> *Die Persistenzkonfiguration erfolgt zentral in OnModelCreating mittels
-> EF-Core-Fluent-API. Diese Wahl ergibt sich aus dem Bedarf an
-> Konfigurationsmöglichkeiten, die nur per Fluent API verfügbar sind:
-> Composite-Indizes, gefilterte Indizes, OnDelete-Verhalten,
-> Enum-Konvertierungen und DB-seitige Default-Werte.*
-
-### 29.4 Zu OnDelete Restrict
-
-> *Alle Pflichtbeziehungen verwenden DeleteBehavior.Restrict statt des
-> EF-Core-Defaults Cascade. Damit wird verhindert, dass das Löschen eines
-> Parent-Datensatzes zur kaskadierenden Vernichtung historischer Children
-> führt. In einer Anwendung, die über Monate Sensordaten und Steuerbefehle
-> akkumuliert, ist Datensicherheit gegen versehentliche Löschungen
-> essenziell.*
-
-### 29.5 Zur Surrogate-Key + Natural-Key Strategie
-
-> *Das Device-Modell verwendet zwei eindeutige Schlüsselattribute: einen
-> technischen Surrogate Key Id (int, IDENTITY) und einen fachlichen Natural
-> Key DeviceIdentifier (nvarchar UNIQUE). Der Surrogate Key dient als PK und
-> FK in Beziehungen wegen seiner Performance-Eigenschaften. Der Natural Key
-> dient der externen Adressierung wegen seiner semantischen Bedeutung und
-> Stabilität über DB-Resets. Beide sind direkt vom PK funktional abhängig
-> — keine transitive Abhängigkeit, daher 3NF-konform.*
-
-### 29.6 Zur Trennung Measurements und StateChanges
-
-> *Stetige Sensorwerte und diskrete Zustandsänderungen werden in zwei
-> getrennten Tabellen modelliert. Stetige Werte sind aggregierbar
-> (Durchschnitte, Verläufe), Schaltereignisse sind Domain-Events mit
-> anderen analytischen Anforderungen (Häufigkeit, Audit-Trail). Diese
-> Trennung folgt dem Single-Responsibility-Prinzip auf Schema-Ebene und
-> vermeidet die in IoT-Systemen häufige Vermischung von Messung und
-> Ereignis.*
-
-### 29.7 Zur Enum-String-Konvertierung
-
-> *State-Werte sind in C# als typsichere Enums modelliert, werden aber als
-> nvarchar gespeichert mittels HasConversion. Diese Strategie verbindet
-> Typsicherheit der Anwendungsschicht mit Lesbarkeit der DB-Repräsentation.
-> Der gefilterte Index auf Status='Pending' setzt diese
-> String-Speicherung voraus.*
-
-### 29.8 Zum filtered Index
-
-> *Der Pi pollt alle zehn Sekunden die DeviceCommands-Tabelle nach
-> ausstehenden Befehlen. Da die meisten Befehle bereits bearbeitet wurden
-> (Status 'Executed' oder 'Failed'), wäre ein normaler Index auf Status
-> ineffizient. Der gefilterte Index indiziert nur die wenigen
-> 'Pending'-Zeilen und liefert sie unabhängig von der Gesamttabellengröße in
-> O(log n).*
-
-### 29.9 Zur Drei-Spalten-Strategie für Schaltzustände
-
-> *Das Schema unterscheidet drei Konzepte: IsEnabled (System-Verwaltung),
-> CurrentState (aktueller Zustand als Performance-Cache), StateChanges
-> (vollständige Event-Historie). CurrentState ist eine bewusste
-> Denormalisierung im Sinne der CQRS-Idee — ableitbar aus StateChanges,
-> aber persistent für Read-Performance auf dem Live-Dashboard.*
-
-### 29.10 Zum Polling-Pattern
-
-> *Der Pi sitzt im privaten Heimnetz hinter NAT und ist vom Backend nicht
-> direkt erreichbar. Statt eines Push-Patterns mit VPN oder Reverse-Tunnel
-> wurde Polling gewählt: der Pi fragt regelmäßig beim Backend nach. Das ist
-> die einfachste, robusteste und am besten dokumentierbare Variante. Der
-> filtered Index auf Status='Pending' macht das Polling effizient.*
-
-### 29.11 Zur Shelly-API-Wahl
-
-> *Die Steuerung der Shelly Smart Plugs erfolgt über eine lokale HTTP-
-> bzw. RPC-basierte API. Die verwendeten Endpunkte und Methoden basieren
-> auf der offiziellen Shelly-API-Dokumentation (Shelly, 2024), insbesondere
-> den Komponenten "Switch" sowie dem JSON-RPC-Protokoll. Der klassische
-> HTTP-Aufruf wurde für den schnellen Hardwaretest genutzt, während das
-> moderne RPC-Modell die offizielle API-Struktur aktueller
-> Shelly-OS-Geräte darstellt.*
-
-### 29.12 Zum Reverse-Proxy-Setup
-
-> *Auf dem Linux-VPS wird Kestrel als interner Webserver auf Port 5000
-> betrieben und von Nginx auf Port 443 mit TLS-Terminierung als Reverse
-> Proxy vorgeschaltet. Dieses Modell entspricht der offiziellen
-> Microsoft-Empfehlung für Linux-Hosting und ist Standard in
-> Produktionsumgebungen. Vorteile: zentrale TLS-Verwaltung über
-> Let's Encrypt, mehrere Domains/Subdomains parallel auf einem Server,
-> verbesserte Sicherheit gegenüber direkter Kestrel-Exposition.*
-
----
-
-## 30. Reflexion: Verworfene Alternativen
-
-In der Diplomarbeit-Verteidigung punktet, wer **bewusst verworfene Alternativen**
-benennen kann.
-
-### 30.1 State als Measurement (verworfen)
+### 29.1 State als Measurement (verworfen)
 
 **Idee:** State als MeasurementType "State" mit Wert 0.0/1.0 in der
 Measurements-Tabelle.
@@ -6866,7 +6768,7 @@ diese Mischung trotz besserer Aggregationsfähigkeit oft kritisiert.
 
 **Stattdessen:** eigene `StateChanges`-Tabelle.
 
-### 30.2 Guid statt int als PK (verworfen)
+### 29.2 Guid statt int als PK (verworfen)
 
 **Idee:** Guid als PK für alle Entities — distributed-friendly,
 professioneller Eindruck.
@@ -6879,7 +6781,7 @@ professioneller Eindruck.
 
 **Stattdessen:** `int` für fachliche Tabellen, `long` für Time-Series-Tabellen.
 
-### 30.3 Pi nicht als Device modellieren (verworfen)
+### 29.3 Pi nicht als Device modellieren (verworfen)
 
 **Idee:** Pi außerhalb der Datenbank, Measurements ohne Device-Bezug.
 
@@ -6888,7 +6790,7 @@ Gerät mit IP wie die Shellys.
 
 **Stattdessen:** Pi als Device mit DeviceType "Sensor".
 
-### 30.4 Eigene Capability-Tabelle (verworfen)
+### 29.4 Eigene Capability-Tabelle (verworfen)
 
 **Idee:** n:m-Tabelle DeviceCapabilities, die festlegt welcher DeviceType
 welche Messwerttypen liefern kann.
@@ -6899,7 +6801,7 @@ IoT-Systemen, aber unverhältnismäßig.
 **Stattdessen:** Disziplin im Worker-Code (Pi liefert Temperature, Shellys
 liefern Power).
 
-### 30.5 Nur DbContext, ohne IdentityDbContext (initial verworfen)
+### 29.5 Nur DbContext, ohne IdentityDbContext (initial verworfen)
 
 **Idee initial:** AqmsDbContext erbt von DbContext, separate User-Tabelle.
 
@@ -6908,7 +6810,7 @@ Passwort-Hashing, Rollen-System mit. Keinen Sinn das selbst zu bauen.
 
 **Stattdessen:** Erbung von `IdentityDbContext<IdentityUser>`.
 
-### 30.6 Hardware-spezifische Spalte ShellyIP (umgestellt)
+### 29.6 Hardware-spezifische Spalte ShellyIP (umgestellt)
 
 **Idee initial:** Spalte heißt `ShellyIP`.
 
@@ -6918,7 +6820,7 @@ Passwort-Hashing, Rollen-System mit. Keinen Sinn das selbst zu bauen.
 - generischer Name erlaubt zukünftige Geräte (Tasmota, anderer Pi) ohne
   Schemaänderung
 
-### 30.7 DeviceTypes nach Funktion (umgestellt)
+### 29.7 DeviceTypes nach Funktion (umgestellt)
 
 **Idee initial:** 5 DeviceTypes nach Funktion (Filter, Licht, CO2-Anlage,
 Surface Skimmer, Heizstab).
@@ -6931,7 +6833,7 @@ weil:
   (haben IP, LastSeen, Measurements...)
 - Erweiterbar: ein zweiter Sensor-Typ-Pi würde sich einfach einreihen
 
-### 30.8 Command/Status mit CHECK-Constraints (umgestellt)
+### 29.8 Command/Status mit CHECK-Constraints (umgestellt)
 
 **Idee initial:** `Command nvarchar(10)` und `Status nvarchar(20)` mit
 expliziten CHECK-Constraints `IN ('on','off')` und
@@ -6946,7 +6848,7 @@ expliziten CHECK-Constraints `IN ('on','off')` und
 Compile-Zeit-Fehler), Lesbarkeit auf DB-Seite, kein Wertebereichs-Abgleich
 zwischen Code und CHECK-Constraint nötig.
 
-### 30.9 SignalR / WebSocket statt Polling (verworfen)
+### 29.9 SignalR / WebSocket statt Polling (verworfen)
 
 **Idee:** VPS pusht Befehle direkt an den Pi via WebSocket.
 
@@ -6954,7 +6856,7 @@ zwischen Code und CHECK-Constraint nötig.
 
 **Stattdessen:** Polling (siehe §3.2).
 
-### 30.10 Direktes Hosting ohne Reverse Proxy (verworfen)
+### 29.10 Direktes Hosting ohne Reverse Proxy (verworfen)
 
 **Idee:** Kestrel direkt auf Port 443.
 
@@ -6967,7 +6869,7 @@ zwischen Code und CHECK-Constraint nötig.
 
 **Stattdessen:** Nginx Reverse Proxy mit Let's Encrypt.
 
-### 30.11 Swap-File bzw. PostgreSQL-Wechsel statt neuem Server (verworfen)
+### 29.11 Swap-File bzw. PostgreSQL-Wechsel statt neuem Server (verworfen)
 
 **Kontext:** Der erste VPS (Debian 12, 1,9 GB RAM) konnte SQL Server für
 Linux nicht betreiben — die Engine verlangt mindestens 2 GB RAM. Drei
@@ -7001,13 +6903,13 @@ Der gesamte Tech-Stack bleibt unverändert: SQL Server, EF-Core-Migrations
 und die Übereinstimmung von Entwicklungs- und Produktivdatenbank sind
 erhalten. Details der Migration: §23A–§23F.
 
-### 30.12 Generisches Repository-Pattern (verworfen)
+### 29.12 Generisches Repository-Pattern (verworfen)
 
 **Idee:** Ein klassisches `IRepository<T>` mit konkreten Implementierungen
 (`DeviceRepository`, `MeasurementRepository` usw.) als Datenzugriffs-
 schicht zwischen Controller und `DbContext` — in einer frühen
 Roadmap-Fassung ursprünglich so vorgesehen, dann verworfen (dieser
-Punkt wurde aus den „Nächsten Schritten" §33 entfernt).
+Punkt wurde aus den „Nächsten Schritten" §32 entfernt).
 
 **Verworfen wegen:** EF Cores `DbContext` ist bereits ein Unit-of-Work,
 und jedes `DbSet<T>` ist bereits ein Repository — beide
@@ -7024,19 +6926,18 @@ die Lesbarkeit und Wartbarkeit verschlechtert.
 Controller rufen Anwendungs-Services auf, die Services nutzen den
 `DbContext` direkt. Drei Schichten statt vier, ohne Funktionalitätsverlust.
 
-**Begründung als Diplomarbeit-Argument:** Die bewusste *Ablehnung* eines
-gängigen Patterns mit Bezug auf die konkrete Projektgröße und die
-Eigenschaften des verwendeten ORMs ist ein verteidigbarer Standpunkt —
-„Pattern X anwenden, weil es im Lehrbuch steht" wäre die schwächere
-Position.
+**Einordnung:** Die Ablehnung stützt sich auf die konkrete Projektgröße und
+die Eigenschaften des verwendeten ORMs, nicht auf eine generelle Aussage
+über das Pattern. Bei größeren Domänen oder einem Provider ohne eingebautes
+Unit-of-Work kann die Abwägung anders ausfallen.
 
 ---
 
-### 30.13 `ICommandService`-Interface (verworfen)
+### 29.13 `ICommandService`-Interface (verworfen)
 
 Beim Bau des `CommandService` wurde bewusst **kein** `ICommandService`-Interface
 angelegt. Ein Interface mit genau einem Implementierer ist dieselbe
-Abstraktion-ohne-Mehrwert wie das in §30.12 verworfene generische
+Abstraktion-ohne-Mehrwert wie das in §29.12 verworfene generische
 Repository-Pattern: Der Service kapselt bereits die Geschäftslogik über dem
 DbContext, und seine Methoden lassen sich ohne Interface testen (EF-Core-
 InMemory bzw. SQLite gegen die echte LINQ-Logik, was sogar aussagekräftiger ist
@@ -7045,7 +6946,7 @@ zweiter Implementierer oder ein konkreter Mock-basierter Controller-Test real
 gebraucht wird — beides ist aktuell nicht der Fall. Begründung konsistent mit
 der Projektlinie „keine Abstraktion auf Vorrat".
 
-### 30.14 Befehls-Poll-Varianten (verworfen zugunsten 1a+2a, §23N.8)
+### 29.14 Befehls-Poll-Varianten (verworfen zugunsten 1a+2a, §23N.8)
 
 - **Per-Shelly-Polling.** Der Worker fragt jeden Shelly einzeln
   (`/pending?deviceIdentifier=shelly-X`). Vorteil: keine Backend-Änderung, Zielgerät
@@ -7057,14 +6958,14 @@ der Projektlinie „keine Abstraktion auf Vorrat".
   für Geräte, die `raspberry-pi` steuert" über eine modellierte Beziehung statt über
   den Typ. Sauberer/allgemeiner, aber Modell + Migration für einen bei *einem* Pi und
   fest 5 Shellys trivialen Fall. Verworfen als Abstraktion auf Vorrat (vgl.
-  §30.12/§30.13).
+  §29.12/§29.13).
 - **Separater Geräte-Registry-Endpunkt für die IP.** Der Worker holt
   einmal/periodisch `/api/devices` (identifier→IP) und cached; `/pending` taggt nur
   den Identifier. Sauberere Trennung Befehlsstrom/Geräteregister, aber mehr bewegliche
   Teile (Fetch + Cache + Invalidierung). Verworfen zugunsten der inline-IP (2a) — der
   Worker braucht die IP nur zum direkten LAN-Schalten und verteilt sie nicht weiter.
 
-### 30.15 Deployment-Varianten Worker/Pi (verworfen zugunsten §23O)
+### 29.15 Deployment-Varianten Worker/Pi (verworfen zugunsten §23O)
 
 - **Framework-Dependent (Runtime am Pi installieren).** Schlankeres Paket, aber verlangt
   `dotnet-runtime-10.0` auf dem Pi plus Versions-Pflege. Verworfen zugunsten self-contained:
@@ -7079,7 +6980,7 @@ der Projektlinie „keine Abstraktion auf Vorrat".
 
 ---
 
-### 30.16 Verworfene Alternativen: Dashboard-Scope (2026-07-12)
+### 29.16 Verworfene Alternativen: Dashboard-Scope (2026-07-12)
 
 Bei knapper Restlaufzeit bis zur Abgabe (31.08.2026) wurde der Frontend-Scope bewusst
 beschnitten. Verworfen wurden:
@@ -7093,21 +6994,21 @@ beschnitten. Verworfen wurden:
   > solange ein Befehl offen ist. Permanentes Polling bleibt verworfen.
 - **SignalR / WebSockets fürs Dashboard.** *Grund:* würde eine Push-Verbindung *zwischen Server
   und Browser* etablieren — das ändert nichts daran, dass der Pi hinter NAT nur *pollen* kann
-  (§30.14). Der Flaschenhals bliebe bestehen, die Architektur würde ohne Nutzen komplexer.
+  (§29.14). Der Flaschenhals bliebe bestehen, die Architektur würde ohne Nutzen komplexer.
 - **Zyklischer Health-Check der Shellys** (Worker pingt sie unabhängig vom Schalten an).
   *Grund:* echter Mehrwert, aber zusätzliche Last, zusätzlicher Code und zusätzliche
   Fehlerbehandlung für ein Feature, das kein Pflichtziel ist. Stattdessen zeigt das Dashboard
   ehrlich „zuletzt geschaltet" statt eines Online-Status, den es nicht belegen kann (§23P.6).
 - **Polly-Retry im Worker.** *Grund:* das manuelle `try/catch` mit Interval-Guard ist
-  dokumentiert, verifiziert und für ein System mit 30-Sekunden-Poll-Takt ausreichend — ein
+  dokumentiert, verifiziert und für ein System mit 10-Sekunden-Poll-Takt ausreichend — ein
   fehlgeschlagener Poll wird schlicht beim nächsten Durchlauf wiederholt. Der Bibliotheks-Aufwand
   zahlt sich hier nicht aus.
 
-*Übergeordnetes Prinzip.* Jeder dieser Punkte ist im Manuskript als **begründete Abgrenzung** zu
-führen, nicht als Lücke. Eine dokumentierte Scope-Entscheidung ist ein Qualitätsmerkmal; ein
-unerwähntes Loch ist ein Mangel.
+*Übergeordnetes Prinzip.* Jeder dieser Punkte ist eine **begründete Abgrenzung**, keine Lücke.
+Eine dokumentierte Scope-Entscheidung ist ein Qualitätsmerkmal; ein unerwähntes Loch ist ein
+Mangel.
 
-### 30.17 Verworfene Alternativen: Web-Frontend und Rechtsseiten (2026-08-19)
+### 29.17 Verworfene Alternativen: Web-Frontend und Rechtsseiten (2026-08-19)
 
 - **Vollständiges Scaffolding der Identity-UI**, um die Anmeldeseite zu gestalten.
   *Grund:* rund 20 Dateien fremden, sicherheitskritischen Codes wandern ins Projekt und
@@ -7136,7 +7037,7 @@ unerwähntes Loch ist ein Mangel.
 
 ---
 
-## 31. Glossar
+## 30. Glossar
 
 | Begriff | Erklärung |
 |---|---|
@@ -7208,11 +7109,11 @@ unerwähntes Loch ist ein Mangel.
 
 # Teil G — Status und Roadmap
 
-## 32. Aktueller technischer Stand
+## 31. Technischer Stand
 
-**Stand: 2026-08-19 · KW 34**
+**Stand: 2026-08-19 · KW 34 — Projektabschluss**
 
-### 32.1 Was funktioniert
+### 31.1 Was funktioniert
 
 | Bereich | Status | Anmerkung |
 |---|---|---|
@@ -7224,20 +7125,20 @@ unerwähntes Loch ist ein Mangel.
 | EF Core + Identity konfiguriert | ✓ | Program.cs sauber |
 | Persistenzschicht-Modell (6 Entities, DbContext) | ✓ | 3NF/BCNF-konform |
 | Migrations + Seeds auf LocalDB | ✓ | `AddDomainEntities` angewendet |
-| Neuer VPS (Debian 13, x86-64, 8 GB RAM) | ✓ | `aqms.aqms.example.com` → 203.0.113.10 |
+| Neuer VPS (Debian 13, x86-64, 8 GB RAM) | ✓ | `aqms.example.com` → 203.0.113.10 |
 | .NET 10 Runtime auf neuem VPS | ✓ | ASP.NET Core Runtime 10.0.8 |
 | Docker auf neuem VPS | ✓ | Docker CE aus offiziellem Repo |
 | SQL Server 2022 (Docker-Container) | ✓ | Express, Port nur auf 127.0.0.1 |
 | Schema + Seeds auf VPS-DB `aqms` | ✓ | per `Script-Migration` eingespielt, verifiziert (14 Tabellen, 6 Devices) |
 | AQMS.Web auf VPS deployed | ✓ | `/var/www/aqms`, Framework-Dependent |
 | systemd-Service `aqms-web` | ✓ | dedizierter User `aqms`, Connection-String per Override |
-| Nginx Reverse Proxy `aqms.aqms.example.com` | ✓ | Erstinstallation auf neuem VPS |
+| Nginx Reverse Proxy `aqms.example.com` | ✓ | Erstinstallation auf neuem VPS |
 | HTTPS via Let's Encrypt | ✓ | gültiges Zertifikat, HTTP→HTTPS-Redirect |
 | DB-Verbindung App→SQL Server | ✓ | über Login-Seite verifiziert |
 | GitHub-Repo | ✓ | mit `.gitignore`, Initial-Commits |
 | CommandsController (GET pending / POST result) + Service-Layer CommandService | ✓ | lokal + VPS verifiziert (2026-06-04), §23N |
 | Worker-Gerüst: Config + named HttpClient `aqms-api` registriert | ✓ | baut + läuft (2026-06-07), §11.6 |
-| Worker: Polling-Loop `GET /api/commands/pending` (mit Resilienz) | ✓ | try/catch + Interval-Guard, lokal + VPS verifiziert (2026-06-28), §11.6/§32.3 |
+| Worker: Polling-Loop `GET /api/commands/pending` (mit Resilienz) | ✓ | try/catch + Interval-Guard, lokal + VPS verifiziert (2026-06-28), §11.6/§31.3 |
 | Worker: Befehls-Empfang v2 (Deserialisierung, Device+IP inline) | ✓ | lokal + VPS verifiziert (Empfang 2026-06-28, VPS-Redeploy 2026-07-02), §23N.8 |
 | Worker: Dispatch (Shelly-Steuerung, klassische API) | ✓ | end-to-end gegen echte Hardware verifiziert (2026-07-02), §11.8 |
 | Worker auf Pi deployed (self-contained arm64, systemd) | ✓ | `/opt/aqms-worker`, `aqms-worker.service`, vom Pi verifiziert (2026-07-02), §23O |
@@ -7250,7 +7151,7 @@ unerwähntes Loch ist ein Mangel.
 | Chart.js-Temperaturverlauf (letzte 50 Messwerte) | ✓ | Zeitzone serverseitig aufgelöst, §23P.5 |
 | **Vollständige Regelkette Browser → VPS → Pi → Shelly → DB → Dashboard** | ✓ | **gegen reale Hardware verifiziert und gefilmt (2026-07-12), §23P.7** |
 | Unit-Tests (xUnit, 16 Tests) | ✓ | `ParseTemperature` + `CommandService`, alle grün (2026-07-12), §23Q |
-| Bedingter Auto-Reload im Dashboard (selbstterminierend) | 🟡 | implementiert, **VPS-Verifikation offen** (2026-07-12), §23P.8 |
+| Bedingter Auto-Reload im Dashboard (selbstterminierend) | ✓ | implementiert 2026-07-12, im Produktiv-Schaltdurchlauf mitgelaufen (2026-08-06), §23P.8 |
 | Messintervall 20 s (bewusste Entscheidung: Testbarkeit vor Datenökonomie) | ✓ | am Pi verifiziert, §23R.1 |
 | **24-h-Dauerlauf: 4.136 Zyklen, 0 Fehler, 0 Lücken** | ✓ | **bestanden (2026-07-13), §23R.3** |
 | IdentitySeeder: zweites Konto in Rolle `User`, Admin als Pflichtkonto | ✓ | `EnsureUserAsync`, Startabbruch bei fehlender/ungültiger Admin-Config, §23K.4 |
@@ -7266,32 +7167,34 @@ unerwähntes Loch ist ein Mangel.
 | Chart.js lokal statt CDN (keine externen Ressourcen mehr) | ✓ | byte-identische Fassung unter `wwwroot/lib/chartjs`, §23T.4 |
 | Alle Views auf UTF-8 mit BOM vereinheitlicht | ✓ | keine Umlaut-Ersatzschreibungen mehr, §23T.5 |
 
-### 32.2 Was noch fehlt
+### 31.2 Bewusste Abgrenzungen und Restrisiken
 
-| Bereich | Status | Phase |
+Alle Komponenten des Systems sind umgesetzt und verifiziert. Was hier steht,
+ist entweder eine begründete Scope-Entscheidung oder ein benanntes, nicht
+funktionsblockierendes Restrisiko.
+
+| Bereich | Einordnung | Beleg |
 |---|---|---|
-| API-Controller `/api/measurements` | ✓ | §23M, POST + GET lokal (2026-05-31) und auf VPS (2026-06-01) verifiziert |
-| Repository-Layer | – | bewusst verworfen zugunsten schlankem Service-Layer (siehe §30) |
-| Identity-Seeder (Admin-User + Rollen) | ✓ | §23K.3, lokal und auf VPS verifiziert |
-| API-Key-Middleware | ✓ | §23L, in allen drei Umgebungen aktiv, lokal (2026-05-29) und auf VPS (2026-06-01) verifiziert |
-| Lokales Setup auf zwei Geräten (User Secrets) | ✓ | Firmen-Gerät (Docker) + Privat-Gerät (LocalDB) verifiziert, §11.7 |
-| **Latenter Defekt: `PiOnline`-Schwellwert implizit an Messintervall gekoppelt** | 🟡 | bei 20 s Takt korrekt, bricht lautlos bei jeder Erhöhung; §23R.2 |
-| Worker-Tests (HTTP-Client mit Fake-Handler) | ⌛ | Phase 5 |
-| Nginx-Log-Aufbewahrung gegen `/etc/logrotate.d/nginx` bestätigen | ⌛ | Datenschutzerklärung nennt 14 Tage, §23T.7 |
-| AVV mit netcup abschließen und PDF ablegen | ⌛ | Nachweis nach Art. 28 Abs 9 DSGVO, §23T.7 |
-| Diplomarbeits-Manuskript | 🟡 | Phase 6 (Vorlage existiert) — **kritischer Pfad, Abgabe 31.08.2026** |
+| Repository-Layer | bewusst verworfen zugunsten eines schlanken Service-Layers | §29.12 |
+| Auto-Refresh, Zeitraum-Filter, Multi-Sensor-Ansicht, Benutzerverwaltungs-UI | bewusste Scope-Abgrenzungen des Dashboards | §29.16 |
+| Polly-Retry im Worker | bewusst zurückgestellt; manuelles `try/catch` mit Interval-Guard ist dokumentiert und verifiziert | §11.6, §29.16 |
+| Löschfrist für `DeviceCommands` und `StateChanges` | bewusst keine Frist zugesagt; Erklärung und Systemverhalten stimmen überein | §23T.7, §29.17 |
+| **Latente Kopplung: `PiOnline`-Schwellwert an Messintervall** | bei 20 s Takt korrekt; bricht lautlos bei jeder Erhöhung des Messintervalls | §23R.2 |
+| Worker-seitige Tests (HTTP-Client mit Fake-Handler) | nicht abgedeckt: der Loop lässt sich nur mit künstlichem Serverausfall prüfen | §23Q, §32 |
+| Fehlerantworten unter `/api/...` als `text/html` statt JSON | Politur; der Worker übersteht es, es steht aber quer zum Statuscode-Vertrag | §23M.2, §23S.5 |
+| `double`-Speicherung der Messwerte | Fließkomma-Artefakte, für Aquarium-Temperaturen ohne Bedeutung | §11.10 |
 
-### 32.3 Verlaufs-Updates (chronologisch)
+### 31.3 Verlaufs-Updates (chronologisch)
 
 > Dieser Abschnitt ist eine **chronologische Update-Historie** (Tagebuch-
 > Charakter). Die Einträge bauen aufeinander auf; spätere Updates können
-> frühere Aussagen überholen. Für den aktuellen Gesamtstand siehe §32.1/§32.2
-> oben bzw. die Projektstand-Doku.
+> frühere Aussagen überholen. Für den aktuellen Gesamtstand siehe §31.1/§31.2
+> oben.
 
 Der ursprüngliche VPS (Debian 12, 1,9 GB RAM) wurde durch einen neuen
 Server ersetzt (Debian 13, x86-64, 8 GB RAM, IP 203.0.113.10). Grund war
 der RAM-Bedarf von SQL Server für Linux, der auf dem alten VPS nicht
-gedeckt werden konnte — siehe §30. Auf dem neuen Server sind .NET-10-
+gedeckt werden konnte — siehe §29. Auf dem neuen Server sind .NET-10-
 Runtime, Docker und der SQL-Server-Container eingerichtet, das DB-Schema
 inkl. Seeds ist eingespielt und verifiziert.
 
@@ -7301,13 +7204,13 @@ inkl. Seeds ist eingespielt und verifiziert.
 > und HTTPS.
 
 **Update 19.05.2026:** Diese Schritte sind abgeschlossen (§23G–§23J).
-`https://aqms.aqms.example.com` ist öffentlich und verschlüsselt erreichbar
+`https://aqms.example.com` ist öffentlich und verschlüsselt erreichbar
 und zeigt die echte AQMS.Web. Der Backend-Stack auf dem neuen VPS ist
 vollständig: Debian 13 → Docker / SQL Server → AQMS.Web (systemd) →
 Nginx → HTTPS. Die Registrierung eines Identity-Users wurde real
 durchgespielt und verifiziert (User in `AspNetUsers` persistiert) — dabei
 trat das in §23H.6 dokumentierte SQL-Login-Problem auf und wurde gelöst.
-Damit sind alle Sofortmaßnahmen aus §33.1 abgeschlossen.
+Damit sind alle damaligen Sofortmaßnahmen abgeschlossen.
 
 **Update 20.05.2026:** Phase 3 angeschnitten. Der IdentitySeeder (§23K.3)
 ist als erste Architekturkomponente der Phase 3 implementiert und sowohl
@@ -7315,7 +7218,7 @@ lokal als auch auf dem VPS verifiziert — Rollen `Admin` und `User` sowie
 der Admin-Benutzer werden idempotent beim App-Start angelegt. Damit ist
 das in §23K.1 beschriebene manuelle DB-Update-Provisorium obsolet. In
 derselben Iteration wurde die Architekturentscheidung gegen ein
-generisches Repository-Pattern getroffen und in §30.12 begründet
+generisches Repository-Pattern getroffen und in §29.12 begründet
 dokumentiert; an dessen Stelle tritt ein schlanker Service-Layer
 (noch ausstehend).
 
@@ -7360,9 +7263,8 @@ die Serialisierung mit `JsonException` ab — direkte Rückgabe der
 `Measurement`-Entity erzeugte einen Endlos-Zyklus über die
 Navigation-Property `Device → Measurements → Device → …`. Lösung: das
 Response-DTO mit `.Select(...)`-Projektion in der LINQ-Kette. Damit hat
-sich die DTO-Theorie aus §23M.2 praktisch bestätigt — verteidigungsfähig
-als „selbst durchlebt, nicht zitiert". Lokal mit POST und GET verifiziert
-(2026-05-31, Firmen-Gerät).
+sich die DTO-Entscheidung aus §23M.2 praktisch bestätigt. Lokal mit POST
+und GET verifiziert (2026-05-31, Firmen-Gerät).
 
 **Privat-Gerät an gleichem Tag durchgezogen:** ApiKey-User-Secret mit
 eigenem Zufallswert gesetzt (anders als Firmen-Gerät, gemäß §11.7-Strategie).
@@ -7381,7 +7283,7 @@ verbindliche Workflow aus §11.7 hält.
 **Reste / offene Punkte aus dem Tag:**
 - Timestamp-Zeitzonen-Marker im JSON-Output verloren (TZ-Info nicht in der
   Antwort, technisch UTC aber nicht markiert — Polishing-Phase).
-- Fachliche Wertvalidierung erst im Service-Layer (§33.2, Phase 3).
+- Fachliche Wertvalidierung erst im Service-Layer (Phase 3).
 - VPS-Verifikation steht aus (mit Worker-Setup).
 - Middleware-Verifikation auf Privat-Gerät war **nicht** Teil des heutigen
   Tests — dort wurde nur Login durchgespielt; die drei API-Key-Szenarien
@@ -7404,7 +7306,7 @@ auch beim Positiv-Test — Ursache war ein syntaktischer Fehler in der
 systemd-Override (`Environment="<wert>"` statt `Environment="ApiKey=<wert>"`,
 ohne erkennbare Fehlermeldung), siehe §23L.8 für vollständige Symptom/
 Ursache/Lösung/Lessons. Nach Korrektur alle drei Test-Szenarien gegen
-`https://aqms.aqms.example.com` bestanden — sechs-Komponenten-Stack (DNS →
+`https://aqms.example.com` bestanden — sechs-Komponenten-Stack (DNS →
 Nginx → HTTPS → Kestrel → Middleware → Controller → DB) zum ersten Mal
 End-to-End in Production bewiesen. Damit ist der API-Key-Stack in allen
 drei Umgebungen verifiziert (Firmen-Gerät, VPS; Privat-Gerät weiterhin
@@ -7414,7 +7316,7 @@ nur Login geprüft, Middleware-Verifikation dort weiterhin offen — siehe
 **Update 2026-06-04:** CommandsController und erster Service-Layer
 (`CommandService`) gebaut und **lokal + VPS** verifiziert (Build grün; vier
 HTTP-Szenarien 200/400/404/409 plus Happy-Path mit StateChange-Insert und
-CurrentState-Update; VPS-Test gegen `https://aqms.aqms.example.com`). Erste
+CurrentState-Update; VPS-Test gegen `https://aqms.example.com`). Erste
 Update-Logik im Backend (Statusübergang `Pending → Executed/Failed`) und
 erste Geschäftslogik-Schicht. Damit ist der Backend-Schreibweg für Befehle
 end-to-end produktiv. Details und Lessons Learned in §23N (inkl. der
@@ -7443,14 +7345,14 @@ läuft bei `HttpRequestException` weiter, statt über
 `HttpRequestException`, `Task.Delay` außerhalb des try) + Interval-Guard gegen
 `Task.Delay(0)`-Tight-Loop. **Verifikation (lokal + VPS):** lokal pollt der Worker
 bei gestoppter API weiter, der Host bleibt am Leben; VPS-Poll gegen
-`aqms.aqms.example.com` liefert wiederholt `Status: OK` (volle Kette produktiv).
+`aqms.example.com` liefert wiederholt `Status: OK` (volle Kette produktiv).
 Offene Resilienz-Punkte bewusst verschoben (Timeout-Cancellation, Polly-Backoff,
 dreifaches Logging).
 
 **Update 2026-06-28 (Befehls-Empfang v2):** `/pending` auf geräte-übergreifenden
 Poll umgebaut — parameterlos, Scoping über `DeviceType.Name == "SmartPlug"` plus
 `IsEnabled`/IP-Guard, je Befehl `DeviceIdentifier` + `IPAddress` inline (§23N.8,
-verworfene Alternativen §30.14). **API-Vertragsänderung:** kein `deviceIdentifier`,
+verworfene Alternativen §29.14). **API-Vertragsänderung:** kein `deviceIdentifier`,
 kein 400-„unbekanntes Gerät" mehr. DTO Web+Worker je +2 Properties; Worker
 deserialisiert + loggt empfangene Befehle. Lokal end-to-end verifiziert; VPS läuft
 noch v1, Redeploy offen. Zwei Praxisprobleme beim Testen (verwaiste Instanz hält
@@ -7490,7 +7392,7 @@ Pi-Poll → realer Shelly geschaltet → Result → Status `Executed` → Badge 
 Entwickler selbst minutenlang auf die scheinbar tote Oberfläche starrte — eine Design-Entscheidung,
 an der ihr eigener Autor scheitert, ist widerlegt. Umgesetzt: **bedingter, selbstterminierender
 Reload** (Skript wird nur gerendert, solange `HasPendingCommand`; endet von allein, sobald der
-Worker gemeldet hat). Permanentes AJAX-Polling und SignalR bleiben verworfen (§30.16). §23R neu:
+Worker gemeldet hat). Permanentes AJAX-Polling und SignalR bleiben verworfen (§29.16). §23R neu:
 **Messintervall-Entscheidung** (§23R.1) — versuchsweise auf 3600 s gesetzt (fachlich richtig:
 Wasser ist träge), aber **bewusst auf 20 s zurückgenommen**, weil der Dauerlauf ein
 Zuverlässigkeitstest *pro Zyklus* ist: 3600 s hätten 24 Zyklen ergeben, 20 s ergaben 4.136 — ein
@@ -7503,15 +7405,15 @@ Defekt** dokumentiert — der hartkodierte 5-Minuten-`PiOnline`-Schwellwert ist 
 
 **Update 2026-08-06 (Issue-Board mit dem Doku-Stand abgeglichen):** Das GitHub-Board
 war seit Phase 1 nicht mehr nachgezogen worden und zeigte 56 offene Aufgaben, obwohl
-die Phasen 2 bis 5 laut §32.1 und §33 abgeschlossen sind. Jedes Feinziel wurde gegen
+die Phasen 2 bis 5 laut §31.1 und §32 abgeschlossen sind. Jedes Feinziel wurde gegen
 die Master-Doku geprüft und, wo belegt, mit Verweis auf die belegende Sektion
 geschlossen: 42 Aufgaben als erledigt, eine als verworfen (PSP 3.3.2
-Repository-Pattern, §30.12). Offen bleiben bewusst vier Sacharbeiten — Polly-Retry
-(§33.1 Punkt 1, zurückgestellt), Worker-seitige Tests mit Fake-Handler (§33.1
-Punkt 5), die optische Gestaltung der Login-Seite (§32.2) — sowie die zehn
-Aufgaben der Phase 6. Der Abgleich hat zwei Status-Drifts in §32.2 aufgedeckt:
+Repository-Pattern, §29.12). Offen bleiben bewusst vier Sacharbeiten — Polly-Retry
+(zurückgestellt, §32.3), Worker-seitige Tests mit Fake-Handler (§32.1
+Punkt 3) und die optische Gestaltung der Login-Seite — sowie die zehn
+Aufgaben der Phase 6. Der Abgleich hat zwei Status-Drifts in §31.2 aufgedeckt:
 „24h Lauftest" und „Sicherheitstests (SSL Labs etc.)" standen dort noch als offen,
-obwohl §32.1 sie seit dem 13.07. bzw. 06.08. als bestanden führt — beide Zeilen
+obwohl §31.1 sie seit dem 13.07. bzw. 06.08. als bestanden führt — beide Zeilen
 entfernt. Methodische Lesson: ein Board, das nicht mitgepflegt wird, wird zur
 zweiten, widersprechenden Statusquelle neben der Doku; der Abgleich gehört an
 jeden Phasenabschluss.
@@ -7521,7 +7423,7 @@ jeden Phasenabschluss.
 eigene deutschsprachige View bekommen (Issue #38 damit erledigt), ohne eigenes
 PageModel — die Anmeldelogik bleibt Bibliothekscode. Impressum und
 Datenschutzerklärung sind angelegt und ohne Konto erreichbar; damit ist der
-öffentliche Betrieb unter `aqms.aqms.example.com` erstmals rechtlich vollständig.
+öffentliche Betrieb unter `aqms.example.com` erstmals rechtlich vollständig.
 
 Der Nebenbefund des Tages ist der interessantere: Beim Formulieren der Zusage „alle
 Bibliotheken werden vom eigenen Server ausgeliefert" fiel auf, dass das Dashboard
@@ -7534,216 +7436,89 @@ Schreiben des Codes übersehen hatte.**
 
 ---
 
-## 33. Nächste Schritte
+## 32. Offene Punkte und Ausblick
 
-> Diese Liste enthält ausschließlich **noch offene** Arbeiten. Erledigte
-> Punkte werden hier entfernt (nicht abgehakt stehengelassen), um keine
-> konkurrierende Status-Quelle zu §32 zu erzeugen. Was bereits umgesetzt
-> ist, steht in §32.1 und in der Projektstand-Doku.
+Alle sechs Projektphasen sind abgeschlossen. Die Phasen 1 und 2 (Hardware,
+Worker auf dem Pi) enden mit §11.10 und §23O, Phase 3 (Backend) mit §23P,
+Phase 4 (Frontend) mit §23T, Phase 5 (Tests) mit §23S. Was bleibt, ist
+Politur und Ausbau — nichts davon blockiert den Betrieb.
 
-### 33.1 Phase 2 (Worker auf Pi)
+### 32.1 Politur
 
-Erledigt (siehe §32.1, §11.6, §11.8, §11.9, §11.10, §23N.8, §23O): Worker-Gerüst,
-**Polling-Loop** inkl. Resilienz, **Befehls-Empfang v2** (Device+IP inline), der **Dispatch**
-(Shelly-Steuerung, hardware-verifiziert 2026-07-02), das **Result-Reporting** (§11.9), das
-**Pi-Deployment** (self-contained arm64, §23O) und der **Sensor-Pfad** (DS18B20 →
-`/api/measurements`, am Pi verifiziert 2026-07-07, §11.10). **Phase 2 ist damit funktional
-abgeschlossen** — der Pi macht Steuerung *und* Monitoring. Offen bleiben nur noch Politur- und
-Test-Punkte (nicht funktional blockierend):
+1. Dreifaches Fehler-Logging beim fehlgeschlagenen Request runterdrehen
+   (`System.Net.Http.HttpClient` auf `Warning`), §11.6.
+2. Fehlerantworten unter `/api/...` als JSON statt `text/html` ausliefern —
+   der Worker übersteht die HTML-Antwort, sie steht aber quer zum
+   Statuscode-Vertrag aus §23M.2 (§23S.5).
+3. Worker-seitige Tests mit austauschbarem `HttpMessageHandler`. Die
+   Sensor-Logik ist getestet (§23Q.2), die Fehlerbehandlung des Loops nicht —
+   ein nicht erreichbarer Server lässt sich nur künstlich herbeiführen.
+4. Randfall des Auto-Reloads: bei dauerhaft offline-Pi lädt die Seite endlos
+   alle 3 s neu. Absicherung wäre ein Reload nur bei Befehlen, die jünger als
+   fünf Minuten sind (§23P.8).
 
-1. Retry-Logik mit Polly (ergänzt das manuelle try/catch) — **bewusst zurückgestellt**, das
-   manuelle try/catch ist dokumentiert und ausreichend (§11.6); kein Blocker für die Abgabe
-2. Dreifaches Fehler-Logging runterdrehen (`System.Net.Http.HttpClient` auf `Warning`)
-3. Config-Key-Tippfehler `MaxContinousSensorErrors` → `MaxContinuous…` korrigieren (Code + appsettings)
-4. Sensor-Health Option B (Ausfall in DB/Dashboard sichtbar) — Ausblick (§11.10)
-5. Worker-seitige Tests (HTTP-Client mit Fake-Handler) — die Sensor-Logik ist getestet (§23Q.2),
-   der Worker-Loop selbst noch nicht
-6. Messintervall: **entschieden** — 20 s bleiben für die Projektlaufzeit (Testbarkeit vor
-   Datenökonomie, §23R.1). Eine Erhöhung auf Minutenbereich ist als *Ausblick* für den realen
-   Dauerbetrieb zu benennen; sie **erfordert zwingend** die Anpassung des `PiOnline`-Schwellwerts
-   (§23R.2)
+### 32.2 Vor einer Änderung des Messintervalls zwingend
 
-**Erledigt seit 2026-07-12:** xUnit-Tests für `ParseTemperature` (§23Q.2) und die Entscheidung
-zur Produktions-BaseUrl (§23O.8 — die Overlay-Datei bleibt).
+Der `PiOnline`-Schwellwert im `DashboardController` ist mit fünf Minuten
+hartkodiert und passt zum Messintervall von 20 s. Eine Erhöhung des
+Intervalls — fachlich für den Dauerbetrieb sinnvoll — **erfordert** die
+Anpassung dieses Schwellwerts, sonst führt das Dashboard den Pi
+fälschlich als offline. Die Kopplung ist in §23R.2 mit Fix-Vorschlag
+dokumentiert.
 
-### 33.2 Phase 3 (Backend) — abgeschlossen
+### 32.3 Ausbaustufen
 
-**Phase 3 ist mit dem 2026-07-12 vollständig abgeschlossen.** Die beiden letzten offenen Punkte
-— rollenbasierte Autorisierung und Befehls-Erstellung — sind umgesetzt und auf dem VPS gegen
-reale Hardware verifiziert (§23P).
-
-Umfang (siehe §32.1): API-Key-Middleware (§23L), MeasurementsController inkl. DTOs (§23M),
-IdentitySeeder (§23K.3), CommandsController + Service-Layer `CommandService` (§23N),
-Befehls-Erstellung `CreateCommandAsync` (§23P.3), Autorisierung per `[Authorize]` /
-`Roles = "Admin"` (§23P.4).
-
-### 33.3 Phase 4 (Frontend) — funktional abgeschlossen
-
-**Umgesetzt und VPS-verifiziert (2026-07-12, §23P):** Dashboard-View mit Temperatur-Kachel,
-Chart.js-Verlaufsdiagramm (letzte 50 Messwerte), Geräteliste mit Status-Badges und
-Toggle-Buttons, Navigation im `_Layout.cshtml`.
-
-**Bewusst nicht umgesetzt** (Scope-Entscheidung, §30.16 — im Manuskript als Abgrenzung zu
-begründen, nicht als Lücke):
-
-1. Auto-Refresh / AJAX-Polling im Browser — die Poll-Latenz wird sichtbar gemacht statt kaschiert
-   (§23P.8)
-2. Zeitraum-Filter (24 h / 7 d) für das Diagramm — fixe Fenstergröße von 50 Messwerten
-3. Multi-Sensor-Ansicht — es existiert genau ein Sensor
-4. Benutzerverwaltungs-UI — Benutzer werden per `IdentitySeeder` administrativ angelegt (§23K)
-
-**Offene Punkte in Phase 4:**
-
-1. **Latenter Defekt: `PiOnline`-Schwellwert** — bei 20 s Messintervall korrekt, bricht aber
-   lautlos, sobald das Intervall erhöht wird (§23R.2). Fix: benannte Konstante mit explizitem
-   Kopplungs-Kommentar. *Nicht dringend, aber vor jeder Intervall-Änderung zwingend.*
-2. **VPS-Verifikation des bedingten Auto-Reloads** (§23P.8) steht aus.
-3. Randfall Auto-Reload: bei dauerhaft offline-Pi lädt die Seite endlos alle 3 s neu — mögliche
-   Absicherung: Reload nur, wenn der offene Befehl jünger als 5 Minuten ist (§23P.8).
-
-### 33.4 Phase 5 (Tests) — abgeschlossen
-
-**Phase 5 ist mit dem 2026-08-06 vollständig abgeschlossen.** Alle neun Feinziele
-aus GZ 5.1 und GZ 5.2 sind durchgeführt und protokolliert (§23S). Die Protokolle
-liegen in `AQMS_Testprotokolle.md` und speisen Anhang D des Manuskripts.
-
-Umfang: Testplan und Protokoll-Vorlage (§23S.1), 24-h-Dauerlauf (§23R.3),
-Schaltdurchlauf über alle fünf Geräte (§23S.7), Prüfung der Programmier-
-schnittstelle (§23M.5, §23N.5, ergänzt §23S.8), Migrationen auf leerer Datenbank
-(§23S.3), SSL Labs (§23S.6), Zugriff ohne Login (§23P.4), API-Key-Schutz
-(§23L.7), Einschleusungsversuch (§23S.5).
-
-**Nicht Teil der Phase, weiterhin offen:** Worker-seitige Tests mit einem
-austauschbaren `HttpMessageHandler` (§33.1 Punkt 5) — die Fehlerbehandlung des
-Loops ist durch keinen Test abgedeckt, weil sich ein nicht erreichbarer Server
-oder ein Timeout nur künstlich herbeiführen lässt.
-
-**Neu aufgenommen aus §23S.5:** Fehlerantworten unter `/api/...` werden als
-`text/html` ausgeliefert statt als JSON. Der Worker übersteht das (§11.6), es
-steht aber quer zum Statuscode-Vertrag aus §23M.2. Politur, kein Blocker.
-
-### 33.5 Phase 6 (Doku & Abgabe)
-
-1. Diplomarbeit-Manuskript aus Master-Doku und Projektstand-Doku ableiten
-2. Diagramme finalisieren (ERD, Architektur, Klassen)
-3. Testprotokolle einarbeiten
-4. Korrekturlesen, Präsentation, Abgabe 31.08.2026
+1. Retry-Logik mit Polly als Ergänzung zum manuellen `try/catch` (§29.16).
+2. Sensor-Health Option B: Dauerausfall des Sensors als Zustand in Datenbank
+   und Dashboard sichtbar machen, statt nur zu loggen (§11.10).
+3. Löschlauf für `DeviceCommands` und `StateChanges` auf Basis des
+   `Timestamp`-Index (§21), falls eine konkrete Aufbewahrungsfrist zugesagt
+   werden soll (§23T.7).
+4. Zeitraum-Filter und Multi-Sensor-Ansicht im Dashboard — heute bewusst
+   abgegrenzt, weil genau ein Sensor existiert (§29.16).
 
 ---
 
-## 34. Doku-Versionierung und veraltete Dateien
+## 33. Doku-Versionierung
 
-### 34.1 Rollenteilung: Tagebuch und Projektstand
+Diese Datei wurde am 09.05.2026 durch Zusammenführung der bis dahin
+getrennt geführten Einzeldokumente angelegt und anschließend laufend
+fortgeschrieben. Jede Fassung hält fest, welche Sektionen aus welchem
+Anlass ergänzt oder korrigiert wurden.
 
-Seit dem 01.06.2026 gilt eine bewusste Aufteilung in zwei Dokumente:
-
-- **`AQMS_Masterdoku.md`** (diese Datei) — das **chronologische Tagebuch**.
-  Lückenloser Verlauf, alle Designentscheidungen mit Begründung, verworfene
-  Alternativen, Praxisprobleme mit Symptom/Ursache/Lösung/Lessons,
-  einschließlich historischer (überholter) Stände. Autoritativ für „wie kam
-  es dazu" und als Quellmaterial für den Methodik-/Verlaufsteil der
-  Diplomarbeit.
-- **`AQMS_Projektstand_<datum>.md`** — die bereinigte **Ist-Stand-Doku**.
-  Beschreibt komponentenorientiert, was *aktuell* gebaut und konfiguriert
-  ist, ohne historische Drift. **Single Source of Truth für den
-  Ist-Stand.** Bei größeren Änderungen wird eine neue datierte Fassung
-  erstellt.
-
-Davor (ab 09.05.2026) war diese Master-Doku alleinige zentrale
-Dokumentation; die Aufteilung wurde eingeführt, weil Tagebuch- und
-Ist-Stand-Funktion in einer Datei zu konkurrierenden Status-Angaben
-geführt hatten.
-
-### 34.2 Veraltete Einzeldokumente
-
-Die folgenden Dateien wurden in diese Master-Doku konsolidiert. Sie sind
-als **VERALTET** markiert (Hinweis am Anfang jeder Datei) und dienen nur
-noch als historische Versionsstände. **Inhaltlich nicht mehr referenzieren.**
-
-**docs/Projektmanagement/**
-- `AQMS_PSP.md` — Projektstrukturplan (Inhalt → §2 Master)
-
-**docs/VS_Setup/**
-- `AQMS_TechStack.md` — Tech-Stack-Erklärung (Inhalt → §4 Master)
-- `AQMS_Vollstaendiges_VS_Setup_Dokumentation.md` — VS-Setup-Doku (Inhalt → §8–§12 Master)
-- `AQMS_Coding_Guide.md` — Schritt-für-Schritt-Coding-Anleitung *(behalten als Lernmaterial für Phase 2-4, nicht ersetzt)*
-
-**docs/VPS_Setup/**
-- `linux_aspNet_setup.md` — VPS-Einrichtung (Inhalt → §23–§28 Master)
-
-**docs/Hardware/**
-- `Raspberry_Pi_WLAN_Setup_NetworkManager.md` — generisch (Inhalt → §6 Master)
-- `Raspberry_Pi_WLAN_Setup_HomeWLAN_10.0.0.222.md` — projektspezifisch (Inhalt → §6 Master)
-- `Raspberry_Pi_WLAN_Setup_HomeWLAN_10.0.0.222_Diploma (1).docx` — Word-Variante (Inhalt → §6 Master, deckungsgleich mit der `.md`-Variante)
-- `AQMS_Shelly_Dokumentation_Diplomarbeit.md` — Shelly Diplomarbeits-Niveau (Inhalt → §7 Master)
-- `AQMS_Shelly_Dokumentation_mit_API_Befehlen.md` — Shelly mit API (Inhalt → §7 Master)
-- `Aquarium_Projekt_Dokumentation_Bis_DS18B20.docx` — DS18B20-Inbetriebnahme inkl. Pull-Up-Fehler und Lösung (Inhalt → §5.2–§5.7 Master)
-- `LK-TEMP2_ANLEITUNG_2021-12-02.pdf` — Joy-IT-Datenblatt für das LK-Temp2-Modul, Referenzmaterial für die DS18B20-Verkabelung und Python-Auslesung (Inhalt → §5.4 + §5.7 Master). Wurde nicht direkt verwendet, da das Projekt den rohen DS18B20 mit externem Pull-Up nutzt.
-
-> Hinweis: Die `.docx` und `.pdf` können nicht mit einem VERALTET-Banner
-> versehen werden (Binärformate). Sie sind aber inhaltlich vollständig in
-> die Master-Doku übernommen und gelten ebenfalls als historische
-> Quelldokumente. Für die Diplomarbeit und alle weiteren Referenzen
-> die Master-Doku verwenden.
-
-**docs/DB_Setup/**
-- `AQMS_DB_Setup_Doku.md` — erste DB-Setup-Anleitung (Iteration 1, → §14 Master)
-- `AQMS_DB_Schema_3NF.md` — frühe 3NF-Doku (Iteration 3, → §15 Master)
-- `AQMS_DB_Schema_Dokumentation_v2.md` — frühe DB-Doku (Iteration 2, → §14 Master)
-- `AQMS_Datenbankdokumentation.md` — finalere Variante mit MinValue/MaxValue (Iteration 4, → §14 Master)
-- `AQMS_Persistenzschicht_Masterdoku.md` — bisheriger DB-Master (vollständig integriert in §13–§22)
-
-**docs/db_schema/**
-- `AQMS_Datenbankdokumentation.md` — Doppel der DB_Setup-Variante (→ §14 Master)
-- `AQMS_DbContext_Lerndoku.md` — DbContext-Detail-Lerndoku (vollständig integriert in §18–§21)
-- `MIGRATION_ANLEITUNG.md` — Migrations-Anleitung der Iteration 4 (→ §22 Master)
-
-### 34.3 Was bleibt aktiv
-
-Aktiv und gepflegt bleiben:
-
-- **Diese Master-Doku** ([docs/AQMS_Masterdoku.md](AQMS_Masterdoku.md))
-- **Diplomarbeit-Vorlage und -Manuskript** ([docs/Diplomarbeit/](Diplomarbeit/))
-- **PDF-Versionen** der ERDs und Schema-Diagramme (Bildmaterial für die Diplomarbeit)
-- **Coding-Guide** ([docs/VS_Setup/AQMS_Coding_Guide.md](VS_Setup/AQMS_Coding_Guide.md)) als Lernmaterial für die noch ausstehenden Phasen 2–4
-
-Alle Word-Dokumente (`.docx`), PDFs, Screenshots und HTML-Versionen
-bleiben unverändert — sie sind Bildmaterial bzw. Lieferdokumente.
-
-### 34.4 Versionsstand dieser Datei
+### 33.1 Versionsstand dieser Datei
 
 | Datum | Version | Änderung |
 |---|---|---|
 | 09.05.2026 | 1.0 | Initiale Konsolidierung aus 16+ Einzeldokumenten |
 | 09.05.2026 | 1.1 | §5 erweitert: Pi-OS-Installation, DS18B20-Pull-Up-Problem mit Diagnose+Lösung, 1-Wire-Aktivierung, Sensor-Auslesung (Joy-IT-Referenz + C#-Skelett). §7 erweitert: Shelly-App-Erst-Inbetriebnahme, A1-Router-DHCP-Reservierung, Test-Loop für alle 5 Shellys. §11 umstrukturiert: appsettings.json wird leer eingecheckt, Connection-String per User Secrets (Dev) oder Umgebungsvariable (Prod). |
-| 19.05.2026 | 1.2 | VPS-Migration vollständig dokumentiert: neue Sektionsgruppe §23A–§23J (Anlass/Entscheidung, DNS-Umstellung, Server-Grundeinrichtung, .NET 10, Docker, SQL Server in Docker, Deployment AQMS.Web, systemd-Service, Nginx, HTTPS — alle real durchgeführten Schritte mit Begründung und Verifikation). Bisherige §23–§28 als historischer Stand (alter Debian-12-VPS) markiert. §22.7 ergänzt: zwei Praxisprobleme beim Einspielen des Schema-Skripts via `sqlcmd` (BOM, QUOTED_IDENTIFIER) mit verbindlichem Einspiel-Befehl. §30.11 ergänzt: verworfene Alternativen Swap-File / PostgreSQL-Wechsel. §32 aktualisiert: Backend-Stack auf neuem VPS vollständig, DB-Verbindung verifiziert. Offen aus §33.1: erster Identity-User / Login durchspielen. |
+| 19.05.2026 | 1.2 | VPS-Migration vollständig dokumentiert: neue Sektionsgruppe §23A–§23J (Anlass/Entscheidung, DNS-Umstellung, Server-Grundeinrichtung, .NET 10, Docker, SQL Server in Docker, Deployment AQMS.Web, systemd-Service, Nginx, HTTPS — alle real durchgeführten Schritte mit Begründung und Verifikation). Bisherige §23–§28 als historischer Stand (alter Debian-12-VPS) markiert. §22.7 ergänzt: zwei Praxisprobleme beim Einspielen des Schema-Skripts via `sqlcmd` (BOM, QUOTED_IDENTIFIER) mit verbindlichem Einspiel-Befehl. §29.11 ergänzt: verworfene Alternativen Swap-File / PostgreSQL-Wechsel. §31 aktualisiert: Backend-Stack auf neuem VPS vollständig, DB-Verbindung verifiziert. Offen aus §32.1: erster Identity-User / Login durchspielen. |
 | 19.05.2026 | 1.3 | §23K ergänzt: erster Identity-User angelegt und per DB bestätigt, Login End-to-End verifiziert; öffentliche Registrierung deaktiviert (Routing-Umleitung in Program.cs) mit Begründung. §22.7 erweitert: `-I`-Schalter gilt für jeden schreibenden `sqlcmd`-Zugriff auf die `aqms`-DB, nicht nur fürs Schema-Skript. §23H.6 ergänzt: Praxisproblem SQL-Login 18456 (Passwort-Abgleich Container/Override). §23H.7 ergänzt: Zwei-Schritt-Deploy-Verfahren wegen Verzeichnisrechten des Service-Users (§28-Problem auf neuem VPS). |
-| 20.05.2026 | 1.4 | §23K.3 ergänzt: IdentitySeeder als dauerhafte Architekturkomponente (statische Klasse, idempotent, Rollen + Admin beim App-Start) mit vollständiger Begründung (warum nicht HasData, warum eigene Klasse, warum DI-Scope), Aufbau, Integration in Program.cs (`.AddRoles<IdentityRole>()` + Scope-Aufruf) und Konfigurations-Setup (User Secrets lokal / systemd-Override in Produktion). §30.12 ergänzt: bewusste Verwerfung des generischen Repository-Patterns zugunsten schlankem Service-Layer (Begründung mit EF-Core-Eigenschaften und Projektgröße). §32 aktualisiert: Identity-Seeder ✓, Repository-Layer als verworfen markiert. |
-| 2026-05-22 08:45 | 1.5 | §11.7 ergänzt: Mehrgerät-Realität dokumentiert (Firmen-Gerät → Docker, Privat-Gerät → LocalDB, VPS → Docker) und bewusste Entscheidung gegen `appsettings.Development.json` als Secret-Träger wegen OneDrive-Sync, Lessons Learned aus Cleanup vom 22.05., verbindlicher Workflow „App auf neuem Gerät einrichten". §11.4 entschärft (verweist auf §11.7). §32 ergänzt: neue Statuszeile „Lokales Setup auf zwei Geräten via User Secrets verifiziert". §32.3 Update 2026-05-22 ergänzt. Ab dieser Version: Doku-Versionseinträge mit Datum **und** Uhrzeit (ISO-Format) für bessere PM-Nachvollziehbarkeit; ältere Einträge unverändert. |
-| 2026-05-29 13:20 | 1.6 | §23L ergänzt: API-Key-Middleware als Architekturkomponente vollständig dokumentiert (Anlass, vier Architekturentscheidungen — ein Schlüssel, X-API-Key-Header, konstantzeitiger Vergleich gegen Timing-Attacks, Pipeline-Position vorn —, Klassen-Aufbau mit Code, Integration in Program.cs inkl. nachgezogenem `UseAuthentication`, Konfigurations-Setup pro Umgebung, drei Test-Szenarien als Verifikation, Status pro Umgebung). §11.7 erweitert: `ApiKey` im Workflow „App auf neuem Gerät einrichten" plus Hinweis „pro Umgebung anderer Wert" und PowerShell-Generator. §32 aktualisiert: Statuszeile API-Key-Middleware ✓ (ersetzt alte ⌛-Zeile). §32.3 Update 2026-05-29 ergänzt mit Nebenbefund `UseAuthentication` und Verifikations-Status. |
-| 2026-05-31 20:30 | 1.7 | §23M ergänzt: MeasurementsController als erster produktiver API-Controller vollständig dokumentiert (Anlass mit Schreibweg Worker→DB und Leseweg DB→Dashboard, sechs Architekturentscheidungen — append-only ohne Update/Delete, Klassen-Attribute, Konstruktor-Injektion als dritter DI-Stil, DTO-Pattern für Eingabe und Ausgabe, globale Exception-Behandlung statt try/catch, 400 für unbekannte fachliche Identifier —, Klassen-Aufbau mit beiden DTOs und Controller-Code, Integration in Program.cs ohne Anpassungen, Verifikation mit POST- und GET-Aufruf, Praxisproblem JSON-Zyklus mit Symptom/Ursache/Lösung/Lessons-Learned, vier bekannte offene Punkte). §32 aktualisiert: Statuszeile `/api/measurements` ✓. §32.3 Update 2026-05-31 ergänzt — inklusive Privat-Gerät-Setup am selben Tag (eigener ApiKey-Wert, AdminBenutzer-Secrets nachgezogen, DB-Schema und Identity-Seed real durchgespielt, Lehrmoment „Update-Database ≠ Seeder beim App-Start" zum zweiten Mal bestätigt) und expliziter Vermerk, dass Middleware-Verifikation auf Privat-Gerät noch nachzuholen ist. |
-| 2026-06-01 13:19 | 1.8 | VPS-Verifikation für API-Key-Middleware und MeasurementsController durchgezogen. §23L.7 aktualisiert: VPS-Wert gesetzt, drei Test-Szenarien bestanden, Übergangs-Vermerk entfernt. §23L.8 neu: Praxisproblem „stiller systemd-Tippfehler beim ApiKey-Override" mit vollständigem Symptom/Ursache/Lösung/Lessons-Block — Override-Zeile war `Environment="<wert>"` statt `Environment="ApiKey=<wert>"`, systemd akzeptiert syntaktisch ohne Fehlermeldung, Konfigurationsschlüssel war nie befüllt, alle `/api/...`-Anfragen mit 401 — plus Diagnose-Befehl `systemctl show --property=Environment`. §23M.5 aufgeteilt in „Lokal" und „Production (VPS, 2026-06-01)" mit Test-Tabelle und Beweis des Sechs-Komponenten-Stacks anhand `Server: nginx`-Header. §23M.7 entschlackt: „VPS-Verifikation steht aus" entfernt. §32 erweitert: zwei Statuszeilen mit VPS-Verifikations-Datum. §32.3 Update 2026-06-01 ergänzt mit Deploy-Verfahren (Filezilla + Zwei-Schritt-Deploy) und Praxisproblem-Verweis. |
-| 2026-06-01 (Cleanup) | 1.9 | **Status-Drift bereinigt und Dokumentation in zwei Rollen getrennt.** Neue Datei `AQMS_Projektstand_2026-06-01.md` als bereinigte, komponentenorientierte Ist-Stand-Doku angelegt (Single Source of Truth für „wie ist es jetzt"); diese Master-Doku als chronologisches Tagebuch klargestellt (Kopf-Hinweis + §34.1 neu gefasst). Behobene Widersprüche: §33.3 listete „Repository-Pattern" als geplant, obwohl §30.12 es als bewusst verworfen dokumentiert — Punkt entfernt, Verweis auf §30.12 ergänzt. §33.1 „Sofortmaßnahmen KW 19–20" (alle erledigt) und erledigte §33.3-Punkte (API-Key-Middleware, MeasurementsController, IdentitySeeder) entfernt; §33 enthält jetzt nur noch echt Offenes, in Phasenreihenfolge neu nummeriert (33.1 Phase 2 … 33.5 Phase 6). §2.2 (eingefrorener Phasenstand 09.05.) durch Verweis auf §32/Projektstand ersetzt. §32.3 als „Verlaufs-Updates (chronologisch)" gekennzeichnet, überholter „noch ausstehend"-Absatz als historisch markiert. §1.3 VPS-IP korrigiert (aktuell 203.0.113.10, alt 203.0.113.11 als stillgelegt gekennzeichnet). §34.1 von „Master-Doku ist SSOT" zu „Rollenteilung Tagebuch/Projektstand" umgeschrieben. |
-| 2026-06-04 21:17 | 2.0 | §23N neu: CommandsController + Service-Layer (`CommandService`) als erste Service-Schicht vollständig dokumentiert — Anlass, neun Architekturentscheidungen (kein Interface, HTTP-freier Service mit Result-Enum, Result-Pattern, Multi-Entity-Transaktion in einem SaveChanges, Idempotenz-Riegel, LastSeen nur im Erfolgszweig, Status-Mapping inkl. 404-vs-400-Abgrenzung und 409 für Zustandskonflikt, Scoped-Registrierung), Klassen-Aufbau mit Code (zwei DTOs, Service, Controller), Integration in Program.cs, **Verifikation lokal + VPS** (vier Szenarien + Happy-Path, VPS-Test gegen `aqms.aqms.example.com` am 2026-06-04, inkl. funktionierender PowerShell-5.1-Testbefehle und sqlcmd), vier Lessons Learned (enum.ToString nicht SQL-übersetzbar → load-then-map; neue Entity ohne Add wird still nicht persistiert; await bindet um die ganze Kette; `-SkipHttpErrorCheck` existiert in PS 5.1 nicht → try/catch). §30.13 neu: `ICommandService`-Interface verworfen (analog §30.12). §33.2 bereinigt: CommandsController, Service-Layer **und** VPS-Verifikation als erledigt entfernt; offen bleiben Autorisierung und Befehls-Erstellung. §32.1 ergänzt: Command-Kette als voll verifiziert; §32.2 Command-Platzhalterzeile entfernt; §32.3 Update 2026-06-04. Nachtrag `AQMS_Masterdoku_Nachtrag_2026-06-04.md` in diese Datei eingearbeitet (Single Source of Truth, keine separate Nachtrag-Datei mehr nötig). |
+| 20.05.2026 | 1.4 | §23K.3 ergänzt: IdentitySeeder als dauerhafte Architekturkomponente (statische Klasse, idempotent, Rollen + Admin beim App-Start) mit vollständiger Begründung (warum nicht HasData, warum eigene Klasse, warum DI-Scope), Aufbau, Integration in Program.cs (`.AddRoles<IdentityRole>()` + Scope-Aufruf) und Konfigurations-Setup (User Secrets lokal / systemd-Override in Produktion). §29.12 ergänzt: bewusste Verwerfung des generischen Repository-Patterns zugunsten schlankem Service-Layer (Begründung mit EF-Core-Eigenschaften und Projektgröße). §31 aktualisiert: Identity-Seeder ✓, Repository-Layer als verworfen markiert. |
+| 2026-05-22 08:45 | 1.5 | §11.7 ergänzt: Mehrgerät-Realität dokumentiert (Firmen-Gerät → Docker, Privat-Gerät → LocalDB, VPS → Docker) und bewusste Entscheidung gegen `appsettings.Development.json` als Secret-Träger wegen OneDrive-Sync, Lessons Learned aus Cleanup vom 22.05., verbindlicher Workflow „App auf neuem Gerät einrichten". §11.4 entschärft (verweist auf §11.7). §31 ergänzt: neue Statuszeile „Lokales Setup auf zwei Geräten via User Secrets verifiziert". §31.3 Update 2026-05-22 ergänzt. Ab dieser Version: Doku-Versionseinträge mit Datum **und** Uhrzeit (ISO-Format) für bessere PM-Nachvollziehbarkeit; ältere Einträge unverändert. |
+| 2026-05-29 13:20 | 1.6 | §23L ergänzt: API-Key-Middleware als Architekturkomponente vollständig dokumentiert (Anlass, vier Architekturentscheidungen — ein Schlüssel, X-API-Key-Header, konstantzeitiger Vergleich gegen Timing-Attacks, Pipeline-Position vorn —, Klassen-Aufbau mit Code, Integration in Program.cs inkl. nachgezogenem `UseAuthentication`, Konfigurations-Setup pro Umgebung, drei Test-Szenarien als Verifikation, Status pro Umgebung). §11.7 erweitert: `ApiKey` im Workflow „App auf neuem Gerät einrichten" plus Hinweis „pro Umgebung anderer Wert" und PowerShell-Generator. §31 aktualisiert: Statuszeile API-Key-Middleware ✓ (ersetzt alte ⌛-Zeile). §31.3 Update 2026-05-29 ergänzt mit Nebenbefund `UseAuthentication` und Verifikations-Status. |
+| 2026-05-31 20:30 | 1.7 | §23M ergänzt: MeasurementsController als erster produktiver API-Controller vollständig dokumentiert (Anlass mit Schreibweg Worker→DB und Leseweg DB→Dashboard, sechs Architekturentscheidungen — append-only ohne Update/Delete, Klassen-Attribute, Konstruktor-Injektion als dritter DI-Stil, DTO-Pattern für Eingabe und Ausgabe, globale Exception-Behandlung statt try/catch, 400 für unbekannte fachliche Identifier —, Klassen-Aufbau mit beiden DTOs und Controller-Code, Integration in Program.cs ohne Anpassungen, Verifikation mit POST- und GET-Aufruf, Praxisproblem JSON-Zyklus mit Symptom/Ursache/Lösung/Lessons-Learned, vier bekannte offene Punkte). §31 aktualisiert: Statuszeile `/api/measurements` ✓. §31.3 Update 2026-05-31 ergänzt — inklusive Privat-Gerät-Setup am selben Tag (eigener ApiKey-Wert, AdminBenutzer-Secrets nachgezogen, DB-Schema und Identity-Seed real durchgespielt, Lehrmoment „Update-Database ≠ Seeder beim App-Start" zum zweiten Mal bestätigt) und expliziter Vermerk, dass Middleware-Verifikation auf Privat-Gerät noch nachzuholen ist. |
+| 2026-06-01 13:19 | 1.8 | VPS-Verifikation für API-Key-Middleware und MeasurementsController durchgezogen. §23L.7 aktualisiert: VPS-Wert gesetzt, drei Test-Szenarien bestanden, Übergangs-Vermerk entfernt. §23L.8 neu: Praxisproblem „stiller systemd-Tippfehler beim ApiKey-Override" mit vollständigem Symptom/Ursache/Lösung/Lessons-Block — Override-Zeile war `Environment="<wert>"` statt `Environment="ApiKey=<wert>"`, systemd akzeptiert syntaktisch ohne Fehlermeldung, Konfigurationsschlüssel war nie befüllt, alle `/api/...`-Anfragen mit 401 — plus Diagnose-Befehl `systemctl show --property=Environment`. §23M.5 aufgeteilt in „Lokal" und „Production (VPS, 2026-06-01)" mit Test-Tabelle und Beweis des Sechs-Komponenten-Stacks anhand `Server: nginx`-Header. §23M.7 entschlackt: „VPS-Verifikation steht aus" entfernt. §31 erweitert: zwei Statuszeilen mit VPS-Verifikations-Datum. §31.3 Update 2026-06-01 ergänzt mit Deploy-Verfahren (Filezilla + Zwei-Schritt-Deploy) und Praxisproblem-Verweis. |
+| 2026-06-01 (Cleanup) | 1.9 | **Status-Drift bereinigt.** Diese Master-Doku als chronologisches Tagebuch klargestellt (Kopf-Hinweis + §33 neu gefasst). Behobene Widersprüche: §32.3 listete „Repository-Pattern" als geplant, obwohl §29.12 es als bewusst verworfen dokumentiert — Punkt entfernt, Verweis auf §29.12 ergänzt. §32.1 „Sofortmaßnahmen KW 19–20" (alle erledigt) und erledigte §32.3-Punkte (API-Key-Middleware, MeasurementsController, IdentitySeeder) entfernt; §32 enthält jetzt nur noch echt Offenes, in Phasenreihenfolge neu nummeriert (33.1 Phase 2 … 33.5 Phase 6). §2.2 (eingefrorener Phasenstand 09.05.) durch Verweis auf §31 ersetzt. §31.3 als „Verlaufs-Updates (chronologisch)" gekennzeichnet, überholter „noch ausstehend"-Absatz als historisch markiert. §1.3 VPS-IP korrigiert (aktuell 203.0.113.10, alt 203.0.113.11 als stillgelegt gekennzeichnet). |
+| 2026-06-04 21:17 | 2.0 | §23N neu: CommandsController + Service-Layer (`CommandService`) als erste Service-Schicht vollständig dokumentiert — Anlass, neun Architekturentscheidungen (kein Interface, HTTP-freier Service mit Result-Enum, Result-Pattern, Multi-Entity-Transaktion in einem SaveChanges, Idempotenz-Riegel, LastSeen nur im Erfolgszweig, Status-Mapping inkl. 404-vs-400-Abgrenzung und 409 für Zustandskonflikt, Scoped-Registrierung), Klassen-Aufbau mit Code (zwei DTOs, Service, Controller), Integration in Program.cs, **Verifikation lokal + VPS** (vier Szenarien + Happy-Path, VPS-Test gegen `aqms.example.com` am 2026-06-04, inkl. funktionierender PowerShell-5.1-Testbefehle und sqlcmd), vier Lessons Learned (enum.ToString nicht SQL-übersetzbar → load-then-map; neue Entity ohne Add wird still nicht persistiert; await bindet um die ganze Kette; `-SkipHttpErrorCheck` existiert in PS 5.1 nicht → try/catch). §29.13 neu: `ICommandService`-Interface verworfen (analog §29.12). §32.2 bereinigt: CommandsController, Service-Layer **und** VPS-Verifikation als erledigt entfernt; offen bleiben Autorisierung und Befehls-Erstellung. §31.1 ergänzt: Command-Kette als voll verifiziert; §31.2 Command-Platzhalterzeile entfernt; §31.3 Update 2026-06-04. |
 
-| 2026-06-07 | 2.1 | Phase 2 begonnen, Worker-Gerüst dokumentiert. §10.2 aktualisiert: `Microsoft.Extensions.Http` von „kommt voraussichtlich" in die echte PackageReference verschoben, mit Begründung HttpClient-Factory gegen Socket-Erschöpfung. §10.4 ergänzt: `dotnet add`-Befehl. §10.5 neu: Praxisproblem „`AddHttpClient` nicht gefunden" (Symptom/Ursache/Lösung/Lessons — Web-SDK bündelt das Paket, Worker-SDK nicht). §11.6 aktualisiert: Worker/Program.cs vom Skelett auf registrierten named `HttpClient` `"aqms-api"`, Worker-Konfigurationsschlüssel-Tabelle, Begründung flacher `ApiKey` (Konsistenz mit §23L + systemd-Doppelunterstrich-Falle §23L.8). §32.1 ergänzt: Worker-Gerüst ✓; §32.2 HttpClient-Zeile auf „Polling-Loop + API-Calls" verengt; §32.3 Update 2026-06-07. §33.1 bereinigt: HttpClient-Factory als erledigt entfernt, neu nummeriert, Polling-Loop als nächster Schritt markiert. Projektstand-Fassung `AQMS_Projektstand_2026-06-07.md` angelegt. |
-| 2026-06-28 | 2.2 | Polling-Loop in `Worker.cs` implementiert und **lokal + VPS verifiziert**. §11.6 erweitert: produktiver Polling-Loop (`GET /api/commands/pending` über named `HttpClient` `"aqms-api"`) mit zwei Resilienz-Entscheidungen (try/catch nur um den Request, gezielter `HttpRequestException`-Fang wegen `BackgroundServiceExceptionBehavior.StopHost`; Interval-Guard gegen Tight-Loop), Verifikation lokal (gestoppte API → geloggt + Worker läuft weiter) und VPS (`200` gegen `aqms.aqms.example.com`), drei offene Resilienz-Punkte (Timeout-vs-Shutdown-Cancellation, Polly-Backoff, dreifaches Logging). §32.1 +Polling-Loop ✓; §32.2 verengt; §32.3 Update 2026-06-28 (Polling-Loop); §33.1 Polling-Loop entfernt. Projektstand-Fassung `AQMS_Projektstand_2026-06-28.md` angelegt. |
-| 2026-06-28 | 2.3 | Befehls-Empfang v2 (geräte-übergreifender Poll). §23N.8 neu: Anlass (Worker pollt als `raspberry-pi`, Schaltbefehle hängen an den Shellys; v1-DTO ohne Ziel/IP), Entscheidung 1a (SmartPlug-Typ-Scoping, `IsEnabled`+IP-Guard) + 2a (IP inline in DTO), konkrete Änderungen (DTO +2 Props Web+Worker, parameterloser Service/Controller, nicht-nullable Rückgabe), **API-Vertragsänderung** (`/pending` ohne `deviceIdentifier`, kein 400-Fall mehr — §23N.5-Zeile obsolet), Verifikation lokal (Device+IP kommen mit, Guard greift, Worker deserialisiert end-to-end; VPS-Redeploy offen), zwei Praxisprobleme (verwaiste Instanz/Port, http-https-Mismatch). §30.14 neu: verworfene Alternativen (per-Shelly-Polling, `ControllerId`-Beziehung, Geräte-Registry-Endpunkt). §32.1 +Befehls-Empfang v2 ✓ (lokal); §32.2 auf Dispatch + Schreibwege verengt; §32.3 Update 2026-06-28 (v2); §33.1 Deserialisieren erledigt → Dispatch nächster Schritt; §33.2 +VPS-Redeploy v2. Projektstand `AQMS_Projektstand_2026-06-28.md` (§2/§4.2/§8/§9) nachgezogen. |
-| 2026-07-02 | 2.4 | Dispatch (Shelly-Steuerung) + Pi-Deployment, beide **hardware-/Pi-verifiziert**. §11.8 neu: Dispatch (klassische Shelly-API §7.4, separater Default-Client statt `aqms-api` gegen Key-Leak, zweischichtige Exception-Behandlung, 3s-Timeout + Timeout-vs-Shutdown-Filter), end-to-end gegen echten Shelly bewiesen. §23O neu: Worker-Deployment auf dem Pi (self-contained linux-arm64, `/opt/aqms-worker`, Service-User `aqms`, native ExecStart, `DOTNET_ENVIRONMENT=Production`, `ApiKey`-Override), inkl. bewusster Vorab-Deployment-Entscheidung und drei Praxisproblemen (`appsettings.prduction`-Tippfehler → localhost-Fallback; `DOTNET_ENVIRONMENT` ≠ `ASPNETCORE_ENVIRONMENT`; leerer `ApiKey`-Override). §30.15 neu: verworfene Deployment-Alternativen (Framework-Dependent, appsettings-Editieren). §32.1 +Dispatch ✓ +Pi-Deployment ✓, Befehls-Empfang v2 auf VPS-verifiziert; §32.2 Dispatch/Shelly/systemd-Unit raus, auf API-Schreibwege verengt; §32.3 Update 2026-07-02; §33.1 Dispatch+systemd erledigt → Result-Reporting nächster Schritt; §33.2 VPS-Redeploy erledigt entfernt. TOC: §23O ergänzt. |
-| 2026-07-02 | 2.5 | Result-Reporting + zwei geschlossene Resilienz-Punkte. §11.9 neu: `ReportResultAsync` (POST `/result` über `aqms-api`-Client), Skip-Fälle (kein IP / unbekannte Action) als `Failed` gemeldet, at-least-once (kein throw bei Melde-Fehler, 409 benign). Zwei Resilienz-Fixes: eigener 10-s-Timeout für den `aqms-api`-Client + Timeout-vs-Shutdown-Filter auf Poll UND Melden (spezifischer Catch vor dem breiten). §11.6 Resilienz-Punkt (a) auf gelöst; §11.8 „offen (a) kein Result-Reporting" → Anschluss §11.9. §23O.7 +Praxisproblem 4 (Overlay-Tippfehler reproduziert, weil nur am Pi statt an der Quelle geflickt). §23O.8 neu: offene Entscheidung BaseUrl-Overlay-Datei vs. systemd-`Environment` (zwei Deployment-Ausfälle als Evidenz, bewusst offen). §32.1 +Result-Reporting ✓; §32.2 auf `POST /measurements` verengt; §33.1 Result-Reporting erledigt → DS18B20 nächster Schritt, +offene BaseUrl-Entscheidung. Projektstand §6.4/§8/§9 nachgezogen. |
-| 2026-07-07 | 2.6 | Sensor-Pfad (DS18B20 → `/api/measurements`) — **Phase 2 funktional abgeschlossen** (Pi macht Steuerung + Monitoring). §11.10 neu: `Ds18b20Reader` (sysfs-Glob `28-*`, `w1_slave`-Read, `static ParseTemperature` mit CRC-Gate + `t=`-Parse + `/1000`, `null` bei ungültig, unit-testbar; `AddSingleton`), `ReportMeasurementAsync` (POST `/measurements` über `aqms-api`-Client, `DeviceIdentifier="raspberry-pi"`, `MeasurementTypeName="Temperature"`), bewusste Kein-Retry-Semantik (Gegensatz zum Result-Reporting), Sensor-Health-Eskalation (Zähler + `LogError` bei Dauerausfall, Option A), Kadenz (`MeasurementIntervalSeconds`, Zeitvergleich im Loop statt zweitem Timer), Ein-Loop-Trade-off (Mess-Read blockiert kurz den Poll, Kadenz ans Poll-Raster gequantelt) als bewusstes „Warum", Option B (Health in DB/Dashboard) als Phase-4-Ausblick. Verifikation am Pi: POST 201, `Messung gesendet: 25.125 °C`, `Measurements`-Tabelle füllt sich. §32.1 +Sensor-Pfad ✓ +Sensor-Health ✓; §32.2 DS18B20/measurements-Zeilen raus; §33.1 Phase 2 funktional abgeschlossen → nur Politur/Tests offen. Projektstand-Fassung `AQMS_Projektstand_2026-07-07.md` angelegt. |
+| 2026-06-07 | 2.1 | Phase 2 begonnen, Worker-Gerüst dokumentiert. §10.2 aktualisiert: `Microsoft.Extensions.Http` von „kommt voraussichtlich" in die echte PackageReference verschoben, mit Begründung HttpClient-Factory gegen Socket-Erschöpfung. §10.4 ergänzt: `dotnet add`-Befehl. §10.5 neu: Praxisproblem „`AddHttpClient` nicht gefunden" (Symptom/Ursache/Lösung/Lessons — Web-SDK bündelt das Paket, Worker-SDK nicht). §11.6 aktualisiert: Worker/Program.cs vom Skelett auf registrierten named `HttpClient` `"aqms-api"`, Worker-Konfigurationsschlüssel-Tabelle, Begründung flacher `ApiKey` (Konsistenz mit §23L + systemd-Doppelunterstrich-Falle §23L.8). §31.1 ergänzt: Worker-Gerüst ✓; §31.2 HttpClient-Zeile auf „Polling-Loop + API-Calls" verengt; §31.3 Update 2026-06-07. §32.1 bereinigt: HttpClient-Factory als erledigt entfernt, neu nummeriert, Polling-Loop als nächster Schritt markiert. |
+| 2026-06-28 | 2.2 | Polling-Loop in `Worker.cs` implementiert und **lokal + VPS verifiziert**. §11.6 erweitert: produktiver Polling-Loop (`GET /api/commands/pending` über named `HttpClient` `"aqms-api"`) mit zwei Resilienz-Entscheidungen (try/catch nur um den Request, gezielter `HttpRequestException`-Fang wegen `BackgroundServiceExceptionBehavior.StopHost`; Interval-Guard gegen Tight-Loop), Verifikation lokal (gestoppte API → geloggt + Worker läuft weiter) und VPS (`200` gegen `aqms.example.com`), drei offene Resilienz-Punkte (Timeout-vs-Shutdown-Cancellation, Polly-Backoff, dreifaches Logging). §31.1 +Polling-Loop ✓; §31.2 verengt; §31.3 Update 2026-06-28 (Polling-Loop); §32.1 Polling-Loop entfernt. |
+| 2026-06-28 | 2.3 | Befehls-Empfang v2 (geräte-übergreifender Poll). §23N.8 neu: Anlass (Worker pollt als `raspberry-pi`, Schaltbefehle hängen an den Shellys; v1-DTO ohne Ziel/IP), Entscheidung 1a (SmartPlug-Typ-Scoping, `IsEnabled`+IP-Guard) + 2a (IP inline in DTO), konkrete Änderungen (DTO +2 Props Web+Worker, parameterloser Service/Controller, nicht-nullable Rückgabe), **API-Vertragsänderung** (`/pending` ohne `deviceIdentifier`, kein 400-Fall mehr — §23N.5-Zeile obsolet), Verifikation lokal (Device+IP kommen mit, Guard greift, Worker deserialisiert end-to-end; VPS-Redeploy offen), zwei Praxisprobleme (verwaiste Instanz/Port, http-https-Mismatch). §29.14 neu: verworfene Alternativen (per-Shelly-Polling, `ControllerId`-Beziehung, Geräte-Registry-Endpunkt). §31.1 +Befehls-Empfang v2 ✓ (lokal); §31.2 auf Dispatch + Schreibwege verengt; §31.3 Update 2026-06-28 (v2); §32.1 Deserialisieren erledigt → Dispatch nächster Schritt; §32.2 +VPS-Redeploy v2. |
+| 2026-07-02 | 2.4 | Dispatch (Shelly-Steuerung) + Pi-Deployment, beide **hardware-/Pi-verifiziert**. §11.8 neu: Dispatch (klassische Shelly-API §7.4, separater Default-Client statt `aqms-api` gegen Key-Leak, zweischichtige Exception-Behandlung, 3s-Timeout + Timeout-vs-Shutdown-Filter), end-to-end gegen echten Shelly bewiesen. §23O neu: Worker-Deployment auf dem Pi (self-contained linux-arm64, `/opt/aqms-worker`, Service-User `aqms`, native ExecStart, `DOTNET_ENVIRONMENT=Production`, `ApiKey`-Override), inkl. bewusster Vorab-Deployment-Entscheidung und drei Praxisproblemen (`appsettings.prduction`-Tippfehler → localhost-Fallback; `DOTNET_ENVIRONMENT` ≠ `ASPNETCORE_ENVIRONMENT`; leerer `ApiKey`-Override). §29.15 neu: verworfene Deployment-Alternativen (Framework-Dependent, appsettings-Editieren). §31.1 +Dispatch ✓ +Pi-Deployment ✓, Befehls-Empfang v2 auf VPS-verifiziert; §31.2 Dispatch/Shelly/systemd-Unit raus, auf API-Schreibwege verengt; §31.3 Update 2026-07-02; §32.1 Dispatch+systemd erledigt → Result-Reporting nächster Schritt; §32.2 VPS-Redeploy erledigt entfernt. TOC: §23O ergänzt. |
+| 2026-07-02 | 2.5 | Result-Reporting + zwei geschlossene Resilienz-Punkte. §11.9 neu: `ReportResultAsync` (POST `/result` über `aqms-api`-Client), Skip-Fälle (kein IP / unbekannte Action) als `Failed` gemeldet, at-least-once (kein throw bei Melde-Fehler, 409 benign). Zwei Resilienz-Fixes: eigener 10-s-Timeout für den `aqms-api`-Client + Timeout-vs-Shutdown-Filter auf Poll UND Melden (spezifischer Catch vor dem breiten). §11.6 Resilienz-Punkt (a) auf gelöst; §11.8 „offen (a) kein Result-Reporting" → Anschluss §11.9. §23O.7 +Praxisproblem 4 (Overlay-Tippfehler reproduziert, weil nur am Pi statt an der Quelle geflickt). §23O.8 neu: offene Entscheidung BaseUrl-Overlay-Datei vs. systemd-`Environment` (zwei Deployment-Ausfälle als Evidenz, bewusst offen). §31.1 +Result-Reporting ✓; §31.2 auf `POST /measurements` verengt; §32.1 Result-Reporting erledigt → DS18B20 nächster Schritt, +offene BaseUrl-Entscheidung. |
+| 2026-07-07 | 2.6 | Sensor-Pfad (DS18B20 → `/api/measurements`) — **Phase 2 funktional abgeschlossen** (Pi macht Steuerung + Monitoring). §11.10 neu: `Ds18b20Reader` (sysfs-Glob `28-*`, `w1_slave`-Read, `static ParseTemperature` mit CRC-Gate + `t=`-Parse + `/1000`, `null` bei ungültig, unit-testbar; `AddSingleton`), `ReportMeasurementAsync` (POST `/measurements` über `aqms-api`-Client, `DeviceIdentifier="raspberry-pi"`, `MeasurementTypeName="Temperature"`), bewusste Kein-Retry-Semantik (Gegensatz zum Result-Reporting), Sensor-Health-Eskalation (Zähler + `LogError` bei Dauerausfall, Option A), Kadenz (`MeasurementIntervalSeconds`, Zeitvergleich im Loop statt zweitem Timer), Ein-Loop-Trade-off (Mess-Read blockiert kurz den Poll, Kadenz ans Poll-Raster gequantelt) als bewusstes „Warum", Option B (Health in DB/Dashboard) als Phase-4-Ausblick. Verifikation am Pi: POST 201, `Messung gesendet: 25.125 °C`, `Measurements`-Tabelle füllt sich. §31.1 +Sensor-Pfad ✓ +Sensor-Health ✓; §31.2 DS18B20/measurements-Zeilen raus; §32.1 Phase 2 funktional abgeschlossen → nur Politur/Tests offen. |
 
-| 2026-07-12 | 2.7 | **Phase 3 und Phase 4 funktional abgeschlossen — vollständige Regelkette gegen reale Hardware verifiziert und gefilmt.** §23P neu: Befehls-Erstellung, Autorisierung und Dashboard — Anlass (der Regelkreis war offen: niemand konnte Befehle *erzeugen*), zentrale Architekturentscheidung „zwei Zugangswege, zwei Auth-Mechanismen" (Toggle über MVC-Route mit Cookie-Auth statt `/api`, weil der API-Key sonst in die Browser-Seite müsste und die Rollenprüfung umgehbar wäre), `CreateCommandAsync` mit vier begründeten Entscheidungen (eigenes Ergebnis-Enum, serverseitige `userId`, Abweisung deaktivierter Geräte, Idempotenz-Riegel gegen Relais-Flattern), `DashboardController` (`[Authorize]` + `Roles = "Admin"` + Antiforgery + Post/Redirect/Get), ViewModel statt Entity inkl. serverseitiger Zeitzonen-Auflösung, Praxisproblem §23P.6 (`Device.LastSeen` wurde nur beim Schalten gesetzt, nie beim Messwert-Empfang → Pi wäre dauerhaft „offline"; Symptom/Ursache/Lösung/Lesson), Produktionsverifikation §23P.7 (7 Schritte, realer Shelly geschaltet, gefilmt), bewusste Einschränkung §23P.8 (kein Auto-Refresh). §23Q neu: Unit-Tests mit xUnit (16 Tests, alle grün) — Provider-Entscheidung InMemory mit ehrlicher Abgrenzung (testet Service-Logik, nicht DB-Constraints), `ParseTemperature` (7 Fälle inkl. `[Theory]` und Negativ-Temperatur), `CommandService` (9 Fälle, inkl. der beiden Negativ-Tests, die die Idempotenz-Riegel absichern). §23O.8 von „offene Entscheidung" auf **entschieden**: BaseUrl bleibt in der Overlay-Datei — beide Deployment-Ausfälle hatten *eine* Ursache (Dateiname-Tippfehler), die an der Quelle behoben ist; methodische Lesson Learned dazu ergänzt. §30.16 neu: verworfene Alternativen zum Dashboard-Scope (Auto-Refresh, SignalR, Shelly-Health-Check, Polly) mit Begründungen. §32 Kopf auf 2026-07-12; §32.1 +6 Zeilen (Befehls-Erstellung, Autorisierung, Dashboard, Chart.js, vollständige Regelkette, Unit-Tests); §32.2 Phase-4-Zeilen entfernt, Manuskript als kritischer Pfad markiert; §32.3 Update 2026-07-12. §33.1 xUnit-Punkt + BaseUrl-Entscheidung als erledigt entfernt, Polly als bewusst zurückgestellt markiert; §33.2 Phase 3 abgeschlossen; §33.3 Phase 4 funktional abgeschlossen + Abgrenzungsliste; §33.4 Unit-Tests als erledigt. TOC: §23P, §23Q ergänzt. Projektstand-Fassung `AQMS_Projektstand_2026-07-12.md` angelegt. |
+| 2026-07-12 | 2.7 | **Phase 3 und Phase 4 funktional abgeschlossen — vollständige Regelkette gegen reale Hardware verifiziert und gefilmt.** §23P neu: Befehls-Erstellung, Autorisierung und Dashboard — Anlass (der Regelkreis war offen: niemand konnte Befehle *erzeugen*), zentrale Architekturentscheidung „zwei Zugangswege, zwei Auth-Mechanismen" (Toggle über MVC-Route mit Cookie-Auth statt `/api`, weil der API-Key sonst in die Browser-Seite müsste und die Rollenprüfung umgehbar wäre), `CreateCommandAsync` mit vier begründeten Entscheidungen (eigenes Ergebnis-Enum, serverseitige `userId`, Abweisung deaktivierter Geräte, Idempotenz-Riegel gegen Relais-Flattern), `DashboardController` (`[Authorize]` + `Roles = "Admin"` + Antiforgery + Post/Redirect/Get), ViewModel statt Entity inkl. serverseitiger Zeitzonen-Auflösung, Praxisproblem §23P.6 (`Device.LastSeen` wurde nur beim Schalten gesetzt, nie beim Messwert-Empfang → Pi wäre dauerhaft „offline"; Symptom/Ursache/Lösung/Lesson), Produktionsverifikation §23P.7 (7 Schritte, realer Shelly geschaltet, gefilmt), bewusste Einschränkung §23P.8 (kein Auto-Refresh). §23Q neu: Unit-Tests mit xUnit (16 Tests, alle grün) — Provider-Entscheidung InMemory mit ehrlicher Abgrenzung (testet Service-Logik, nicht DB-Constraints), `ParseTemperature` (7 Fälle inkl. `[Theory]` und Negativ-Temperatur), `CommandService` (9 Fälle, inkl. der beiden Negativ-Tests, die die Idempotenz-Riegel absichern). §23O.8 von „offene Entscheidung" auf **entschieden**: BaseUrl bleibt in der Overlay-Datei — beide Deployment-Ausfälle hatten *eine* Ursache (Dateiname-Tippfehler), die an der Quelle behoben ist; methodische Lesson Learned dazu ergänzt. §29.16 neu: verworfene Alternativen zum Dashboard-Scope (Auto-Refresh, SignalR, Shelly-Health-Check, Polly) mit Begründungen. §31 Kopf auf 2026-07-12; §31.1 +6 Zeilen (Befehls-Erstellung, Autorisierung, Dashboard, Chart.js, vollständige Regelkette, Unit-Tests); §31.2 Phase-4-Zeilen entfernt; §31.3 Update 2026-07-12. §32.1 xUnit-Punkt + BaseUrl-Entscheidung als erledigt entfernt, Polly als bewusst zurückgestellt markiert; §32.2 Phase 3 abgeschlossen; §32.3 Phase 4 funktional abgeschlossen + Abgrenzungsliste; Phase-5-Liste: Unit-Tests als erledigt. TOC: §23P, §23Q ergänzt. |
 
-| 2026-07-12 | 2.8 | **Auto-Reload-Revision, Messintervall, Dauerlauf gestartet.** §23P.8 von „bewusste Einschränkung: kein Auto-Refresh" auf **Revision** umgeschrieben: Position zurückgenommen (Anlass: der Entwickler lief selbst in die Falle → UX-Defekt, nicht „ehrliche Abbildung"), Lösung bedingter **selbstterminierender** Reload (`@if (HasPendingCommand)` → `setTimeout(reload, 3000)`; endet von allein, sobald der Worker gemeldet hat), drei verworfene Alternativen tabelliert (`meta refresh`, Dauer-`setInterval`, SignalR), bekannter Randfall (offline-Pi → Endlos-Reload) als offener Punkt, methodische Lesson Learned (eine Position unter Druck zu halten ist richtig, sie unter *neuer Evidenz* zu revidieren ebenfalls). Status ehrlich als „implementiert, VPS-Verifikation offen" geführt. §30.16 entsprechend korrigiert: nicht mehr „Auto-Refresh verworfen", sondern „permanentes AJAX-Polling verworfen" + Revisionshinweis. §23R neu: Messintervall 3600 s mit fachlicher Begründung (Wärmekapazität; Abtastrate folgt der Änderungsrate der Messgröße), Konsequenzen für Datenmenge, Visualisierung (50 Werte ≈ 2 Tage → Vorlauf nötig) und Sensor-Health-Eskalation; **Praxisproblem §23R.2** (hartkodierter 5-min-`PiOnline`-Schwellwert vs. 60-min-Takt → Pi 55/60 Minuten fälschlich „offline"; Kern: implizite, nirgends deklarierte Kopplung zwischen Worker-Config und Web-Code, bricht lautlos ohne Compiler-Fehler oder roten Test) mit Fix-Vorschlag und zwei Lessons Learned; §23R.3 24-h-Dauerlauf gestartet, Auswertungsbefehle hinterlegt, Ergebnis-Platzhalter. §32.1 +3 Zeilen (Auto-Reload 🟡, Messintervall ✓, Dauerlauf 🟡); §32.2 +DEFEKT-Zeile `PiOnline`-Schwellwert; §32.3 Update 2026-07-12 (abends). §33.1 +Messintervall final festlegen; §33.3 +3 offene Punkte (Defekt, VPS-Verifikation, Reload-Randfall); §33.4 Dauerlauf als gestartet markiert. TOC: §23R ergänzt. Projektstand `AQMS_Projektstand_2026-07-12.md` synchron nachgezogen. |
+| 2026-07-12 | 2.8 | **Auto-Reload-Revision, Messintervall, Dauerlauf gestartet.** §23P.8 von „bewusste Einschränkung: kein Auto-Refresh" auf **Revision** umgeschrieben: Position zurückgenommen (Anlass: der Entwickler lief selbst in die Falle → UX-Defekt, nicht „ehrliche Abbildung"), Lösung bedingter **selbstterminierender** Reload (`@if (HasPendingCommand)` → `setTimeout(reload, 3000)`; endet von allein, sobald der Worker gemeldet hat), drei verworfene Alternativen tabelliert (`meta refresh`, Dauer-`setInterval`, SignalR), bekannter Randfall (offline-Pi → Endlos-Reload) als offener Punkt, methodische Lesson Learned (eine Position unter Druck zu halten ist richtig, sie unter *neuer Evidenz* zu revidieren ebenfalls). Status ehrlich als „implementiert, VPS-Verifikation offen" geführt. §29.16 entsprechend korrigiert: nicht mehr „Auto-Refresh verworfen", sondern „permanentes AJAX-Polling verworfen" + Revisionshinweis. §23R neu: Messintervall 3600 s mit fachlicher Begründung (Wärmekapazität; Abtastrate folgt der Änderungsrate der Messgröße), Konsequenzen für Datenmenge, Visualisierung (50 Werte ≈ 2 Tage → Vorlauf nötig) und Sensor-Health-Eskalation; **Praxisproblem §23R.2** (hartkodierter 5-min-`PiOnline`-Schwellwert vs. 60-min-Takt → Pi 55/60 Minuten fälschlich „offline"; Kern: implizite, nirgends deklarierte Kopplung zwischen Worker-Config und Web-Code, bricht lautlos ohne Compiler-Fehler oder roten Test) mit Fix-Vorschlag und zwei Lessons Learned; §23R.3 24-h-Dauerlauf gestartet, Auswertungsbefehle hinterlegt, Ergebnis-Platzhalter. §31.1 +3 Zeilen (Auto-Reload 🟡, Messintervall ✓, Dauerlauf 🟡); §31.2 +DEFEKT-Zeile `PiOnline`-Schwellwert; §31.3 Update 2026-07-12 (abends). §32.1 +Messintervall final festlegen; §32.3 +3 offene Punkte (Defekt, VPS-Verifikation, Reload-Randfall); Phase-5-Liste: Dauerlauf als gestartet markiert. TOC: §23R ergänzt. |
 
-| 2026-07-13 | 2.9 | **24-h-Dauerlauf bestanden — Phase 5 weitgehend abgeschlossen.** §23R.1 neu gefasst: Die Messintervall-Entscheidung ist eine **Abwägung zwischen zwei berechtigten Positionen** — fachlich wäre ein langes Intervall richtig (Wasser ist träge, die Abtastrate sollte der Änderungsrate der Messgröße folgen), aber der Dauerlauf ist ein Zuverlässigkeitstest *pro Zyklus*: 3600 s hätten 24 Zyklen ergeben, 20 s ergaben 4.136 — ein 170-fach härterer Test bei identischem Aufwand. Entscheidung: **20 s, Testbarkeit vor Datenökonomie**; Minutenbereich als Ausblick für den realen Dauerbetrieb benannt. Methodische Lesson: die fachlich richtige und die für den Test nützliche Abtastrate sind nicht dasselbe. §23R.2 von „aktiver Defekt" auf **latenter Defekt** korrigiert: der 5-min-`PiOnline`-Schwellwert ist bei 20 s Takt korrekt, bricht aber **lautlos** bei jeder Intervall-Erhöhung — implizite, nirgends deklarierte Kopplung zwischen Worker-Config und Web-Code; Lesson: latente Defekte sind gefährlicher als aktive, weil sie erst auffallen, wenn jemand die Gegenseite ändert. **§23R.3: vollständiges Testprotokoll** — 4.136 Messzyklen in 24 h, **0 Fehler, 0 Warnungen, 0 Lücken**, Service nach 24 h stabil (`active (running)`); belegt Schleifen-Stabilität, CRC-Zuverlässigkeit, `IHttpClientFactory`-Robustheit über 4.136 HTTPS-POSTs (kein Socket-Exhaustion) und Speicherstabilität unter systemd. Fachliche Plausibilisierung der Messwerte: glatter Tag-Nacht-Verlauf 26,25–28,06 °C, Sprünge im Bereich der 12-Bit-Sensorauflösung (0,0625 °C) — kein Rauschen, sondern Physik. Lesson: ein Dauerlauf, dessen Ergebnis niemand nachrechnet, beweist nichts; die Auswertungsabfrage gehört *vor* den Lauf geplant. §32.1 Dauerlauf ✓ + Messintervall korrigiert; §32.2 Defekt-Zeile auf 🟡 latent; §32.3 Update zusammengefasst; §33.1 Messintervall entschieden; §33.3 Defekt entschärft; §33.4 Dauerlauf erledigt. Projektstand §6.4/§6.6/§9.3/§10/§11 synchron. |
-| 2026-08-06 | 3.0 | **Phase 5 abgeschlossen, Seeder erweitert.** §23K.4 neu: zweites Konto in der Rolle `User` über die Konfigurationssektion `StandardBenutzer`, Anlegevorgang in `EnsureUserAsync` ausgelagert, Admin als Pflichtkonto mit Startabbruch bei fehlender **oder ungültiger** Konfiguration (Unterscheidung „nicht konfiguriert" vs. „konfiguriert und trotzdem nicht anlegbar"), Auswertung von `CreateAsync` als Korrektur am Bestand, Kopplung `EmailConfirmed` ↔ `RequireConfirmedAccount` festgehalten, bewusster Preis der Neustartschleife unter `Restart=always` begründet. §23S neu: Abschluss der Phase 5 mit Testschema und drei methodischen Regeln, eigener Testcontainer auf Port 1434, Migrationstest, Rollentrennung (CSRF-Falle, Erwartung „403" als sachlich falsch korrigiert — Cookie-Handler leitet auf AccessDenied um), Einschleusungsversuch auf zwei Ebenen (Codesuche ohne Treffer + erzeugtes SQL als eigentlicher Beweis), Fehlerdarstellung an echter Ausnahme in Produktionskonfiguration, SSL Labs Note A, Schaltdurchlauf über fünf Geräte mit **erster Messung der Schaltlatenz** (5–9 s, Mittel 6,9 s) und Einordnung gegen die Herleitung in §3.7, Schnittstellenprüfung aus §23M.5/§23N.5 zusammengeführt, drei Praxisprobleme (launchSettings überschreibt Umgebung; fehlender vs. falscher API-Key von außen ununterscheidbar; App im Vordergrund beendet) und vier Lessons Learned. §23Q.3 korrigiert: Titel nannte 9 Tests, die Tabelle listet 8 — `Total: 16` ergibt sich aus 7 Sensor-Methoden (8 Fälle wegen einer `[Theory]`) plus 8 CommandService-Tests. §32 auf Stand 2026-08-06 gesetzt und um 8 Statuszeilen ergänzt. §33.4 von Offen-Liste auf „abgeschlossen" umgeschrieben; offen bleiben Worker-seitige Tests (§33.1) und der neue Nebenbefund HTML-Fehlerantworten unter `/api`. Neue Datei `AQMS_Testprotokolle.md` als Quelle für Anhang D. |
+| 2026-07-13 | 2.9 | **24-h-Dauerlauf bestanden — Phase 5 weitgehend abgeschlossen.** §23R.1 neu gefasst: Die Messintervall-Entscheidung ist eine **Abwägung zwischen zwei berechtigten Positionen** — fachlich wäre ein langes Intervall richtig (Wasser ist träge, die Abtastrate sollte der Änderungsrate der Messgröße folgen), aber der Dauerlauf ist ein Zuverlässigkeitstest *pro Zyklus*: 3600 s hätten 24 Zyklen ergeben, 20 s ergaben 4.136 — ein 170-fach härterer Test bei identischem Aufwand. Entscheidung: **20 s, Testbarkeit vor Datenökonomie**; Minutenbereich als Ausblick für den realen Dauerbetrieb benannt. Methodische Lesson: die fachlich richtige und die für den Test nützliche Abtastrate sind nicht dasselbe. §23R.2 von „aktiver Defekt" auf **latenter Defekt** korrigiert: der 5-min-`PiOnline`-Schwellwert ist bei 20 s Takt korrekt, bricht aber **lautlos** bei jeder Intervall-Erhöhung — implizite, nirgends deklarierte Kopplung zwischen Worker-Config und Web-Code; Lesson: latente Defekte sind gefährlicher als aktive, weil sie erst auffallen, wenn jemand die Gegenseite ändert. **§23R.3: vollständiges Testprotokoll** — 4.136 Messzyklen in 24 h, **0 Fehler, 0 Warnungen, 0 Lücken**, Service nach 24 h stabil (`active (running)`); belegt Schleifen-Stabilität, CRC-Zuverlässigkeit, `IHttpClientFactory`-Robustheit über 4.136 HTTPS-POSTs (kein Socket-Exhaustion) und Speicherstabilität unter systemd. Fachliche Plausibilisierung der Messwerte: glatter Tag-Nacht-Verlauf 26,25–28,06 °C, Sprünge im Bereich der 12-Bit-Sensorauflösung (0,0625 °C) — kein Rauschen, sondern Physik. Lesson: ein Dauerlauf, dessen Ergebnis niemand nachrechnet, beweist nichts; die Auswertungsabfrage gehört *vor* den Lauf geplant. §31.1 Dauerlauf ✓ + Messintervall korrigiert; §31.2 Defekt-Zeile auf 🟡 latent; §31.3 Update zusammengefasst; §32.1 Messintervall entschieden; §32.3 Defekt entschärft; Phase-5-Liste: Dauerlauf erledigt. |
+| 2026-08-06 | 3.0 | **Phase 5 abgeschlossen, Seeder erweitert.** §23K.4 neu: zweites Konto in der Rolle `User` über die Konfigurationssektion `StandardBenutzer`, Anlegevorgang in `EnsureUserAsync` ausgelagert, Admin als Pflichtkonto mit Startabbruch bei fehlender **oder ungültiger** Konfiguration (Unterscheidung „nicht konfiguriert" vs. „konfiguriert und trotzdem nicht anlegbar"), Auswertung von `CreateAsync` als Korrektur am Bestand, Kopplung `EmailConfirmed` ↔ `RequireConfirmedAccount` festgehalten, bewusster Preis der Neustartschleife unter `Restart=always` begründet. §23S neu: Abschluss der Phase 5 mit Testschema und drei methodischen Regeln, eigener Testcontainer auf Port 1434, Migrationstest, Rollentrennung (CSRF-Falle, Erwartung „403" als sachlich falsch korrigiert — Cookie-Handler leitet auf AccessDenied um), Einschleusungsversuch auf zwei Ebenen (Codesuche ohne Treffer + erzeugtes SQL als eigentlicher Beweis), Fehlerdarstellung an echter Ausnahme in Produktionskonfiguration, SSL Labs Note A, Schaltdurchlauf über fünf Geräte mit **erster Messung der Schaltlatenz** (5–9 s, Mittel 6,9 s) und Einordnung gegen die rechnerische Herleitung, Schnittstellenprüfung aus §23M.5/§23N.5 zusammengeführt, drei Praxisprobleme (launchSettings überschreibt Umgebung; fehlender vs. falscher API-Key von außen ununterscheidbar; App im Vordergrund beendet) und vier Lessons Learned. §23Q.3 korrigiert: Titel nannte 9 Tests, die Tabelle listet 8 — `Total: 16` ergibt sich aus 7 Sensor-Methoden (8 Fälle wegen einer `[Theory]`) plus 8 CommandService-Tests. §31 auf Stand 2026-08-06 gesetzt und um 8 Statuszeilen ergänzt. die Offen-Liste zur Phase 5 auf „abgeschlossen" umgeschrieben; offen bleiben Worker-seitige Tests (§32.1) und der neue Nebenbefund HTML-Fehlerantworten unter `/api`. |
 
-| 2026-08-06 | 3.1 | **Issue-Board mit dem Doku-Stand abgeglichen.** 43 GitHub-Issues geschlossen (42 erledigt, 1 verworfen), jedes mit Verweis auf die belegende Doku-Sektion; offen bleiben nur Polly-Retry, Worker-Tests, Login-Seiten-Gestaltung und die Phase-6-Aufgaben. §32.2 bereinigt: die Zeilen „24h Lauftest" und „Sicherheitstests (SSL Labs etc.)" standen als offen, obwohl §32.1 sie als bestanden führt — entfernt; die Login-Zeile trägt jetzt die Issue-Nummer. §32.3 Update 2026-08-06 ergänzt (Abgleich, aufgedeckte Status-Drift, methodische Lesson). |
-| 2026-08-19 | 3.2 | **Web-Frontend fertiggestellt — öffentlicher Betrieb erstmals rechtlich vollständig.** §23T neu: Login-View, Rechtsseiten und lokale Ausliefervorgaben. Enthält (a) die eigene Anmeldeseite als **View-only-Überschreibung** der Identity-UI — `@model …UI.V5.…Internal.LoginModel` ohne eigenes `.cshtml.cs`, weil die `@model`-Direktive in Razor Pages die PageModel-Klasse bestimmt und die Anmeldelogik damit Bibliothekscode bleibt (Tabelle Scaffolding vs. View-only, Begründung: sicherheitskritischen Fremdcode nicht kopieren, damit Hersteller-Patches weiter greifen); (b) Impressum und Datenschutzerklärung mit Zuordnungstabelle Angabe → Rechtsgrundlage → Fundstelle und drei begründeten Entscheidungen (kleine Offenlegung nach § 25 Abs 5 MedienG statt Unternehmensimpressum, da Betrieb als Privatperson; kein Cookie-Banner, da nur technisch notwendige Cookies nach § 165 Abs 3 TKG 2021; kein Link auf die mit 20.07.2025 eingestellte EU-Streitbeilegungsplattform), samt Abbildung der beschriebenen Verarbeitungen auf den tatsächlichen Code (Nginx-Logs statt Anwendung, `AspNetUsers`, `RequestedByUserId`/`ChangedByUserId`); (c) **Praxisproblem §23T.4**: Chart.js kam über `cdn.jsdelivr.net` — jeder Dashboard-Aufruf sendete die IP des angemeldeten Benutzers an einen Dritten und widersprach zwei Absätzen der eben formulierten Datenschutzerklärung; gelöst durch lokale Ablage der byte-identischen Fassung 4.5.1 unter `wwwroot/lib/chartjs` (MD5-Abgleich), Nebeneffekt: Dashboard ohne CDN-Abhängigkeit vorführbar; (d) §23T.5 Zeichenkodierung, alle Views auf UTF-8 mit BOM vereinheitlicht (BOM-lose Datei bricht lautlos, sobald ein Werkzeug auf die ANSI-Codepage zurückfällt); (e) §23T.6 Verifikationstabelle, §23T.7 drei offene Punkte, §23T.8 vier Lessons Learned. §30.17 neu: fünf verworfene Alternativen (volles Scaffolding, Cookie-Banner „zur Sicherheit", volles Unternehmensimpressum, Beibehaltung des CDN mit Offenlegung, Löschjob für `DeviceCommands`/`StateChanges`). §32 Kopf auf 2026-08-19 · KW 34; §32.1 +4 Zeilen (Login-View, Rechtsseiten, Chart.js lokal, UTF-8/BOM); §32.2 Login-Zeile (Issue #38) als erledigt entfernt, +2 offene Betriebspunkte (logrotate-Frist bestätigen, AVV mit netcup); §32.3 Update 2026-08-19 mit der methodischen Lesson, dass ein Rechtstext eine prüfbare Zusage über den Code ist. Kopf-Standzeile der Datei von 2026-06-07 (Drift) auf den aktuellen Stand gezogen. TOC: §23T ergänzt. Commits `386cde3`, `c2e915f`, `dd726ca`. |
-
-Künftige Änderungen werden hier dokumentiert.
+| 2026-08-06 | 3.1 | **Issue-Board mit dem Doku-Stand abgeglichen.** 43 GitHub-Issues geschlossen (42 erledigt, 1 verworfen), jedes mit Verweis auf die belegende Doku-Sektion; offen bleiben nur Polly-Retry, Worker-Tests, Login-Seiten-Gestaltung und die Phase-6-Aufgaben. §31.2 bereinigt: die Zeilen „24h Lauftest" und „Sicherheitstests (SSL Labs etc.)" standen als offen, obwohl §31.1 sie als bestanden führt — entfernt; die Login-Zeile trägt jetzt die Issue-Nummer. §31.3 Update 2026-08-06 ergänzt (Abgleich, aufgedeckte Status-Drift, methodische Lesson). |
+| 2026-08-19 | 3.2 | **Web-Frontend fertiggestellt — öffentlicher Betrieb erstmals rechtlich vollständig.** §23T neu: Login-View, Rechtsseiten und lokale Ausliefervorgaben. Enthält (a) die eigene Anmeldeseite als **View-only-Überschreibung** der Identity-UI — `@model …UI.V5.…Internal.LoginModel` ohne eigenes `.cshtml.cs`, weil die `@model`-Direktive in Razor Pages die PageModel-Klasse bestimmt und die Anmeldelogik damit Bibliothekscode bleibt (Tabelle Scaffolding vs. View-only, Begründung: sicherheitskritischen Fremdcode nicht kopieren, damit Hersteller-Patches weiter greifen); (b) Impressum und Datenschutzerklärung mit Zuordnungstabelle Angabe → Rechtsgrundlage → Fundstelle und drei begründeten Entscheidungen (kleine Offenlegung nach § 25 Abs 5 MedienG statt Unternehmensimpressum, da Betrieb als Privatperson; kein Cookie-Banner, da nur technisch notwendige Cookies nach § 165 Abs 3 TKG 2021; kein Link auf die mit 20.07.2025 eingestellte EU-Streitbeilegungsplattform), samt Abbildung der beschriebenen Verarbeitungen auf den tatsächlichen Code (Nginx-Logs statt Anwendung, `AspNetUsers`, `RequestedByUserId`/`ChangedByUserId`); (c) **Praxisproblem §23T.4**: Chart.js kam über `cdn.jsdelivr.net` — jeder Dashboard-Aufruf sendete die IP des angemeldeten Benutzers an einen Dritten und widersprach zwei Absätzen der eben formulierten Datenschutzerklärung; gelöst durch lokale Ablage der byte-identischen Fassung 4.5.1 unter `wwwroot/lib/chartjs` (MD5-Abgleich), Nebeneffekt: Dashboard ohne CDN-Abhängigkeit vorführbar; (d) §23T.5 Zeichenkodierung, alle Views auf UTF-8 mit BOM vereinheitlicht (BOM-lose Datei bricht lautlos, sobald ein Werkzeug auf die ANSI-Codepage zurückfällt); (e) §23T.6 Verifikationstabelle, §23T.7 drei offene Punkte, §23T.8 vier Lessons Learned. §29.17 neu: fünf verworfene Alternativen (volles Scaffolding, Cookie-Banner „zur Sicherheit", volles Unternehmensimpressum, Beibehaltung des CDN mit Offenlegung, Löschjob für `DeviceCommands`/`StateChanges`). §31 Kopf auf 2026-08-19 · KW 34; §31.1 +4 Zeilen (Login-View, Rechtsseiten, Chart.js lokal, UTF-8/BOM); §31.2 Login-Zeile (Issue #38) als erledigt entfernt, +2 offene Betriebspunkte (logrotate-Frist bestätigen, AVV mit netcup); §31.3 Update 2026-08-19 mit der methodischen Lesson, dass ein Rechtstext eine prüfbare Zusage über den Code ist. Kopf-Standzeile der Datei von 2026-06-07 (Drift) auf den aktuellen Stand gezogen. TOC: §23T ergänzt. Commits `386cde3`, `c2e915f`, `dd726ca`. |
+| 2026-08-24 | 3.3 | **Abgabe-Bereinigung — keine neuen Projektinhalte.** Die Doku wurde auf einen reinen Sachstand zum Projektabschluss zurückgeführt. Anonymisierung vervollständigt (Domain-Artefakt `aqms.aqms.example.com` durchgängig auf `aqms.example.com` korrigiert, Pi-Benutzer auf `piuser` gesetzt). Sämtliche Verweise auf Begleitdateien und auf die Ableitung des Diplomarbeits-Manuskripts entfernt, ebenso der Abschnitt „Argumentationen für die Verteidigung" (Kapitel ab §29 dadurch neu nummeriert). Sachliche Korrekturen gegen den ausgelieferten Code: Shelly-API-Wahl in §7.7 (klassische API statt RPC, konsistent zu §11.8), Poll-Intervall in §11.10 und §29.16 auf 10 s, Messintervall auf 20 s, Konfigurationsschlüssel `MaxContinuousSensorErrors`, Chart.js als lokale Auslieferung in §4. Historische Zwischenstände in §5.7, §9.4 und §11.5 als solche markiert. §23T.7 auf die abgeschlossenen Datenschutz-Nachweise umgestellt. §31.2 von „Was noch fehlt" auf bewusste Abgrenzungen und Restrisiken, §32 von „Nächste Schritte" auf Politur, Kopplungs-Warnung und Ausbaustufen umgeschrieben. |
 
 ---
 

@@ -42,3 +42,6 @@ docs/*
 # --- Diplomarbeit (Abgabe laeuft ueber den offiziellen Weg) ---
 *.docx
 *.doc
+
+# --- Bildmaterial / Projektfotos (nicht Teil der Veroeffentlichung) ---
+assets/
